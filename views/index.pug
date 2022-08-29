@@ -2,4 +2,19 @@ extends layout
 
 block content
   h1= title
-  p Welcome to #{title}
+  h5 Welcome to #{title}
+  div(class="container-fluid border text-center")
+    br
+    br
+    p ********Place for Game Explanation********
+    br
+  br
+  div(class="container-fluid border")
+    div(class="row gx-5")
+      div(class="col")
+        a(href="/", class="btn btn-primary") Play Game Session
+      div(class="col")
+        a(href="/", class="btn btn-outline-primary") Admin/Moderator Login
+
+    
+  
