@@ -1,12 +1,17 @@
+//import npm packages
 const createError = require("http-errors");
 const express = require("express");
 const path = require("path");
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 
+//import router modules
 const indexRouter = require("./routes/index");
+const joinRouter = require("./routes/join");
+const playRouter = require("./routes/play");
 const usersRouter = require("./routes/users");
 
+//create express application
 const app = express();
 
 // view engine setup
@@ -20,7 +25,10 @@ app.use(cookieParser());
 
 app.use(express.static(path.join(__dirname, "public")));
 
+// router middleware
 app.use("/", indexRouter);
+app.use("/join", joinRouter);
+app.use("/play", playRouter);
 app.use("/users", usersRouter);
 
 // catch 404 and forward to error handler

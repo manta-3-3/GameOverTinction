@@ -1,9 +1,8 @@
 const express = require("express");
 const router = express.Router();
 
-/* GET users listing. */
 router.get("/", function (req, res, next) {
-  res.send("NOT IMPLEMENTED: roote for /user route");
+  res.send("NOT IMPLEMENTED: roote for /join route");
 });
 
 module.exports = router;
