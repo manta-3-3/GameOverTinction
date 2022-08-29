@@ -1,18 +1,31 @@
-//import npm packages
+// import npm packages
 const createError = require("http-errors");
 const express = require("express");
 const path = require("path");
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
+const mongoose = require("mongoose");
 
-//import router modules
+// import router modules
 const indexRouter = require("./routes/index");
 const joinRouter = require("./routes/join");
 const playRouter = require("./routes/play");
 const usersRouter = require("./routes/users");
 
-//create express application
+// create express application
 const app = express();
+
+// set up mongoose connection
+mongoose
+  .connect(process.env.MONGODB_URI, {
+    dbName: "gameovertinction",
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("successfuly connected to mongoDB Atlas"))
+  .catch((e) => console.log(e));
+const db = mongoose.connection;
+db.on("error", console.error.bind(console, "MongoDB connection error:"));
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));
