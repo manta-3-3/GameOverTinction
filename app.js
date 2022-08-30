@@ -1,4 +1,5 @@
 // import npm packages
+const debug = require("debug");
 const createError = require("http-errors");
 const express = require("express");
 const path = require("path");
@@ -15,15 +16,15 @@ const usersRouter = require("./routes/users");
 // create express application
 const app = express();
 
-// set up mongoose connection
+// set up mongoDB connection via mongoose
 mongoose
   .connect(process.env.MONGODB_URI, {
     dbName: "gameovertinction",
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => console.log("successfuly connected to mongoDB Atlas"))
-  .catch((e) => console.log(e));
+  .then(() => debug("gameovertinction:mongoDB")("successfully connected"))
+  .catch((e) => debug("gameovertinction:mongoDB")("Error: " + e));
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "MongoDB connection error:"));
 
