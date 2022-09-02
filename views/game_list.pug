@@ -1,0 +1,12 @@
+extends layout
+
+block content
+  h1= title
+  h5 please select one of the availble games below to join
+  br
+  div(class="vstack gap-3")
+    each game in list_games
+      div(class="bg-light border")
+        p(class="fw-bolder fs-5")= game.name 
+        p 0/#{game.maxPlayers} players joined
+        a(href=game.url, class="btn btn-primary") Join 
