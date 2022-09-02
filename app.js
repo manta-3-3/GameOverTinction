@@ -8,6 +8,7 @@ const logger = require("morgan");
 const mongoose = require("mongoose");
 const helmet = require("helmet");
 const compression = require("compression");
+const expressSession = require("express-session");
 
 // import router modules
 const indexRouter = require("./routes/index");
@@ -42,6 +43,24 @@ app.use(helmet()); // secure all routes with helmet by setting various HTTP head
 app.use(compression()); // compress all routes
 
 app.use(express.static(path.join(__dirname, "public")));
+
+// express-session middleware
+const sessionOptions = {
+  resave: false, // don't save session if unmodified
+  saveUninitialized: false, // don't create session until something stored
+  secret: "keyboard cat",
+  cookie: { maxAge: 10 * 60000 },
+  rolling: false,
+  store: MongoStore.create({
+    client: mongoose.connection.client,
+    stringify: false,
+  }),
+};
+if (app.get("env") === "production") {
+  app.set("trust proxy", 1); // trust first proxy
+  sessionOptions.cookie.secure = true; // serve secure cookies
+}
+app.use(expressSession(sessionOptions));
 
 // router middleware
 app.use("/", indexRouter);
