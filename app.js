@@ -9,6 +9,7 @@ const mongoose = require("mongoose");
 const helmet = require("helmet");
 const compression = require("compression");
 const expressSession = require("express-session");
+const mongoDbStore = require("connect-mongo");
 
 // import router modules
 const indexRouter = require("./routes/index");
@@ -44,15 +45,15 @@ app.use(compression()); // compress all routes
 
 app.use(express.static(path.join(__dirname, "public")));
 
-// express-session middleware
+// express-session and connect-mongo middleware
 const sessionOptions = {
   resave: false, // don't save session if unmodified
   saveUninitialized: false, // don't create session until something stored
   secret: "keyboard cat",
   cookie: { maxAge: 10 * 60000 },
   rolling: false,
-  store: MongoStore.create({
-    client: mongoose.connection.client,
+  store: mongoDbStore.create({
+    client: db.client,
     stringify: false,
   }),
 };
