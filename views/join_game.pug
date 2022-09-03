@@ -1,0 +1,31 @@
+extends layout
+
+block content
+  h1= title
+  br
+  form(method='POST', action='')
+    // Game ID
+    div(class="mb-3")
+      label(for="game_id", class="form-label fw-bolder fs-6") For Game ID:
+      input(id="game_id", type="text" ,class="form-control", value=game_id, disabled, readonly)
+    // Player Name
+    div(class="mb-3")
+      label(for="playerName", class="form-label fw-bolder fs-6") Player Name:
+      input(id="playerName", type="text", class="form-control", placeholder="Enter your Player Name here", aria-describedby="playerNameHelp", name="playerName", required="true")
+      div(id="playerNameHelp", class="form-text") max. 40 characters allowed
+    // Player Color
+    div(class="mb-3")
+      label(for="playerColor", class="form-label fw-bolder fs-6") Player Color:
+      select(id="playerColor", class="form-select")
+        option(value="none", selected) Choose your Player Color
+        option(value="red") Red
+        option(value="green") Greeen
+        option(value="blue") Blue
+        option(value="yellow") Yellow
+        option(value="black") Black  
+    // Game Password
+    div(class="mb-3")
+      label(for="gamePassword", class="form-label fw-bolder fs-6") Game Password:
+      input(id="gamePassword", type="password", class="form-control", placeholder="Enter Password for this Game here", , name="gamePassword", required="true")
+    // Submit Button
+    button(type="submit", class="btn btn-primary") Submit
