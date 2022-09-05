@@ -2,7 +2,19 @@ extends layout
 
 block content
   h1= title
-  br
+  hr
+  // Error Messages
+  if valErrors
+    div(class="alert alert-danger", role="alert")
+      h4(class="alert-heading") Login Errors!
+      p(class="mb-0") The following errors below occurred during the login phase to this game
+      hr
+      ul
+        for error in valErrors
+          li!= error.msg
+      hr
+      p(class="mb-0") Please try again
+  // Login Form
   form(method='POST', action='')
     // Game ID
     div(class="mb-3")
