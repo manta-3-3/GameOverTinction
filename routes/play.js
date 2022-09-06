@@ -5,12 +5,12 @@ const router = express.Router();
 const playController = require("../controllers/playController");
 
 // GET request for index
-router.get("/", playController.get_index);
+router.get("/", playController.get_play_index);
 
 // GET request for playing specified game
-router.get("/:game_id", playController.get_game);
+router.get("/:game_id", playController.get_play_game);
 
 // POST request for playing specified game
-router.post("/:game_id", playController.post_game);
+router.post("/:game_id", playController.post_play_game);
 
 module.exports = router;
