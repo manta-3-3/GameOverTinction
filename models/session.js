@@ -13,12 +13,12 @@ exports.sessionModel = sessionModel;
 
 // export specific query helper functions
 
-// count how many players are logged in at specific game_id in total
-exports.countTotalByGame_id = function (game_id) {
+// count how many players currently are logged in total at specific game_id
+exports.countTotalPlayersByGame_id = function (game_id) {
   return sessionModel.countDocuments({ "session.game_id": game_id });
 };
 
-// count how many players at specific game_id have provided an playerAnswer
+// count how many players currently have provided an playerAnswer at specific game_id
 exports.countProvPlayerAnswerByGame_id = function (game_id) {
   return sessionModel
     .countDocuments({ "session.game_id": game_id })
