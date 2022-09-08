@@ -4,15 +4,6 @@ const ObjectId = require("mongoose").Types.ObjectId;
 // require database models
 const Game = require("../models/game");
 
-// helper functions
-function isValidObjectId(id) {
-  if (ObjectId.isValid(id)) {
-    if (String(new ObjectId(id)) === id) return true;
-    return false;
-  }
-  return false;
-}
-
 // display list of available games
 exports.game_list = function (req, res, next) {
   Game.find({})
@@ -41,16 +32,12 @@ exports.post_join_game = [
     .withMessage("Player Name cannot be longer than 40 characters.")
     .isAlphanumeric()
     .withMessage("Player Name has non-alphanumeric characters."),
-  // body("playerColor") NOT IMPLEMENTED YET
+  // TODO: body("playerColor") NOT IMPLEMENTED YET
   body("gamePassword")
     .trim()
     .escape()
     .custom(function (value, { req }) {
       return new Promise((resolve, reject) => {
-        // check first if its a valid ObjectId
-        if (!isValidObjectId(req.params.game_id)) {
-          return reject("Invalid ObjectId, No such game exists!");
-        }
         // fetch game for this game_id from database
         Game.findById(req.params.game_id)
           .then((db_game) => {
@@ -67,7 +54,7 @@ exports.post_join_game = [
           });
       });
     }),
-  // NOT IMPLEMENTED YET: ckeck if maxPlayers in game is not exceeded
+  // TODO: NOT IMPLEMENTED YET: ckeck if maxPlayers in game is not exceeded
 
   function (req, res) {
     // extract the validation errors from a request
@@ -88,7 +75,7 @@ exports.post_join_game = [
       // assigne data to session
       req.session.game_id = req.params.game_id;
       req.session.playerName = req.body.playerName;
-      req.session.playerColor = "none"; // later req.body.playerColor
+      req.session.playerColor = "none"; // TODO: later req.body.playerColor
       req.session.playerAnswer = null;
       // redirect to the play route of this game
       res.redirect(`/play/${req.params.game_id}`);
