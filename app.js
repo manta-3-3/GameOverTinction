@@ -28,7 +28,7 @@ mongoose
     useUnifiedTopology: true,
   })
   .then(() => debug("gameovertinction:mongoDB")("successfully connected"))
-  .catch((e) => debug("gameovertinction:mongoDB")("Error: " + e));
+  .catch((e) => debug("gameovertinction:mongoDB")(e));
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "MongoDB connection error:"));
 
@@ -36,6 +36,7 @@ db.on("error", console.error.bind(console, "MongoDB connection error:"));
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "pug");
 
+// various middleware
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -50,10 +51,11 @@ const sessionOptions = {
   resave: false, // don't save session if unmodified
   saveUninitialized: false, // don't create session until something stored
   secret: "keyboard cat",
-  cookie: { maxAge: 10 * 60000 },
-  rolling: false,
+  cookie: { maxAge: 1 * 60 * 60 * 1000 },
+  rolling: true,
   store: mongoDbStore.create({
     client: db.client,
+    dbName: "gameovertinction",
     stringify: false,
   }),
 };
