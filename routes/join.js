@@ -5,7 +5,7 @@ const router = express.Router();
 const joinController = require("../controllers/joinController");
 
 // GET request for list of all Game items
-router.get("/", joinController.game_list);
+router.get("/", joinController.join_game_list);
 
 // GET request to log-on for specified game
 router.get("/:game_id", joinController.get_join_game);

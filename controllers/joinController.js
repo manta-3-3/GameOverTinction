@@ -1,16 +1,18 @@
 const { body, validationResult } = require("express-validator");
-const ObjectId = require("mongoose").Types.ObjectId;
+const async = require("async");
 
 // require database models
 const Game = require("../models/game");
+const Session = require("../models/session");
 
 // display list of available games
-exports.game_list = function (req, res, next) {
+exports.join_game_list = function (req, res, next) {
   Game.find({})
     .select("-password")
     .exec(function (err, data) {
       if (err) return next(err);
-      res.render("game_list", { title: "Select Game", list_games: data });
+      // TODO: display current player count at each game
+      res.render("join_game_list", { title: "Select Game", list_games: data });
     });
 };
 
@@ -38,23 +40,35 @@ exports.post_join_game = [
     .escape()
     .custom(function (value, { req }) {
       return new Promise((resolve, reject) => {
-        // fetch game for this game_id from database
-        Game.findById(req.params.game_id)
-          .then((db_game) => {
-            if (db_game == null) {
+        async.parallel(
+          {
+            //fetch game for this game_id from database
+            db_game(callback) {
+              Game.findById(req.params.game_id).exec(callback);
+            },
+            //fetch current player count at game_id from session
+            sess_countCurrentPlayers(callback) {
+              Session.countTotalPlayersByGame_id(req.params.game_id).exec(
+                callback
+              );
+            },
+          },
+          (err, res) => {
+            if (err) return reject(err);
+            if (res.db_game == null) {
               return reject("Sorry, No such game exists at the moment!");
             }
-            if (db_game.password !== value) {
+            if (res.sess_countCurrentPlayers >= res.db_game.maxPlayers) {
+              return reject("Sorry, maximum number of players reached!");
+            }
+            if (res.db_game.password !== value) {
               return reject("Sorry, Wrong password for this game!");
             }
             return resolve();
-          })
-          .catch((err) => {
-            return reject(err);
-          });
+          }
+        );
       });
     }),
-  // TODO: NOT IMPLEMENTED YET: ckeck if maxPlayers in game is not exceeded
 
   function (req, res) {
     // extract the validation errors from a request
