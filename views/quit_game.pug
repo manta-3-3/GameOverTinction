@@ -1,0 +1,11 @@
+extends layout
+
+block content
+  h1= title
+  hr
+  h5 Do you really want to quit from all games?
+  p(class="alert alert-warning", role="alert") All session data like Player Name, etc. will be lost
+  // Quit Form
+  form(method='POST', action='')
+    // Submit Button
+    button(type="submit", class="btn btn-danger") Click to quit

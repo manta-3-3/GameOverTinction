@@ -15,7 +15,8 @@ const mongoDbStore = require("connect-mongo");
 const indexRouter = require("./routes/index");
 const joinRouter = require("./routes/join");
 const playRouter = require("./routes/play");
-const usersRouter = require("./routes/users");
+const quitRouter = require("./routes/quit");
+const usersRouter = require("./routes/users"); //TODO: not in use
 
 // create express application
 const app = express();
@@ -69,6 +70,7 @@ app.use(expressSession(sessionOptions));
 app.use("/", indexRouter);
 app.use("/join", joinRouter);
 app.use("/play", playRouter);
+app.use("/quit", quitRouter);
 app.use("/users", usersRouter);
 
 // catch 404 and forward to error handler
