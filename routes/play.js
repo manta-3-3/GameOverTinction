@@ -16,15 +16,11 @@ router.get("/", playController.get_play_index);
 // GET request for playing specified game, welcome/info page for this game
 router.get("/:game_id", playController.get_play_game_info);
 
-// TODO: GET request for playing specified game during collectingAnswers phase
-router.get("/:game_id/answer", function (req, res, next) {
-  res.send(`NOT IMPLEMENTED: ${req.method} ${req.path} route`);
-});
+// GET request for playing specified game during collectingAnswers phase
+router.get("/:game_id/answer", playController.get_play_game_answer);
 
-// TODO: POST request for playing specified game during collectingAnswers phase
-router.post("/:game_id/answer", function (req, res, next) {
-  res.send(`NOT IMPLEMENTED: ${req.method} ${req.path} route`);
-});
+// POST request for playing specified game during collectingAnswers phase
+router.post("/:game_id/answer", playController.post_play_game_answer);
 
 // TODO: GET request for playing specified game during voting phase
 router.get("/:game_id/vote", function (req, res, next) {
