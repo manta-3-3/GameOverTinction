@@ -22,15 +22,11 @@ router.get("/:game_id/answer", playController.get_play_game_answer);
 // POST request for playing specified game during collectingAnswers phase
 router.post("/:game_id/answer", playController.post_play_game_answer);
 
-// TODO: GET request for playing specified game during voting phase
-router.get("/:game_id/vote", function (req, res, next) {
-  res.send(`NOT IMPLEMENTED: ${req.method} ${req.path} route`);
-});
+// GET request for playing specified game during voting phase
+router.get("/:game_id/vote", playController.get_play_game_vote);
 
-// TODO: POST request for playing specified game during voting phase
-router.post("/:game_id/vote", function (req, res, next) {
-  res.send(`NOT IMPLEMENTED: ${req.method} ${req.path} route`);
-});
+// POST request for playing specified game during voting phase
+router.post("/:game_id/vote", playController.post_play_game_vote);
 
 // TODO: GET request for playing specified game during showVotingResults phase
 router.get("/:game_id/results", function (req, res, next) {

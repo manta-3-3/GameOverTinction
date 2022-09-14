@@ -7,6 +7,7 @@ const sessionShema = new mongoose.Schema(
     expires: Date,
     session: {
       answerLetter: String,
+      playerAnswer: String,
     },
   },
   { strict: false }
@@ -52,8 +53,16 @@ exports.findAnswersAndLettersByGame_id = function (game_id) {
     .ne(null)
     .where("session.playerAnswer")
     .ne(null)
-    .sort({ "session.answerLetter": -1 })
+    .sort({ "session.answerLetter": 1 })
     .select("-_id session.answerLetter session.playerAnswer");
+};
+
+// count how many players currently have provided an playerVote at specific game_id
+exports.countProvPlayerVoteByGame_id = function (game_id) {
+  return sessionModel
+    .countDocuments({ "session.game_id": game_id })
+    .where("session.playerVote")
+    .ne(null);
 };
 
 // query for specific game_id,

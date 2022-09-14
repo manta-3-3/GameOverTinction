@@ -1,0 +1,29 @@
+extends layout_baseGame
+
+block game_content
+  h5 Vote for an answer by ticking an option below
+  // vote already provided
+  if sess_user.playerVote
+    p(class="alert alert-info", role="alert") You already voted below for: #[strong #{sess_user.playerVote}], resubmit to change it!
+  // Error Messages
+  if valErrors
+    div(class="alert alert-danger", role="alert")
+      h4(class="alert-heading") Vote Errors!
+      p(class="mb-0") The following errors below occurred during the voting phase to this game
+      hr
+      ul
+        for error in valErrors
+          li!= error.msg
+      hr
+      p(class="mb-0") Please try again
+  // Vote Form
+  form(method='POST', action='', class="my-4")
+    // Vote Radios
+    div(class="my-2")
+      each aNl in answersAndLetters
+        div(class="form-check")
+          input(class="form-check-input", type="radio", name="playerVote", id=("radio_"+aNl.session.answerLetter), value=(aNl.session.answerLetter+". "+aNl.session.playerAnswer), required)
+          label(class="form-check-label", for=("radio_"+aNl.session.answerLetter)) #[strong #{aNl.session.answerLetter}.] #{aNl.session.playerAnswer} 
+    // Submit Button
+    button(type="submit", class="btn btn-primary") Submit
+  a(class="btn btn-outline-primary w-100", href="/quit", role="button") Quit

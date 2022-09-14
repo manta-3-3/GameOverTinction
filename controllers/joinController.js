@@ -92,6 +92,7 @@ exports.post_join_game = [
       req.session.playerColor = "none"; // TODO: later req.body.playerColor
       req.session.playerAnswer = null;
       req.session.answerLetter = null;
+      req.session.playerVote = null;
       // redirect to the play route of this game
       res.redirect(`/play/${req.params.game_id}`);
     });

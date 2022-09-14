@@ -92,7 +92,7 @@ exports.post_play_game_answer = [
     .isLength({ min: 1 })
     .withMessage("Your answer should contain at least 1 character!")
     .isLength({ max: 250 })
-    .withMessage("Your answer cannot be longer than 40 characters!"),
+    .withMessage("Your answer cannot be longer than 250 characters!"),
 
   function (req, res, next) {
     // extract the validation errors from a request
@@ -187,6 +187,101 @@ exports.post_play_game_answer = [
       function (err) {
         if (err) return next(err);
         res.redirect(`/play/${res.locals.db_game.id}/vote`);
+      }
+    );
+  },
+];
+
+exports.get_play_game_vote = function (req, res) {
+  Session.findAnswersAndLettersByGame_id(res.locals.db_game.id).exec(
+    (err, data) => {
+      if (err) next(err);
+      res.render("play_game_vote", {
+        title: "Vote for an answer",
+        answersAndLetters: data,
+      });
+    }
+  );
+};
+
+exports.post_play_game_vote = [
+  // validate and sanitize fields
+  body("playerVote")
+    .exists()
+    .withMessage("No answer selected!")
+    .bail()
+    .trim()
+    .escape()
+    .isLength({ min: 1 })
+    .withMessage("Your vote should contain at least 1 character!")
+    .isLength({ max: 260 })
+    .withMessage("Your vote cannot be longer than 260 characters!"),
+
+  function (req, res, next) {
+    // extract the validation errors from a request
+    const valErrors = validationResult(req);
+    if (!valErrors.isEmpty()) {
+      // there are errors. Render form again with sanitized values/errors messages
+      Session.findAnswersAndLettersByGame_id(res.locals.db_game.id).exec(
+        (err, data) => {
+          if (err) next(err);
+          res.render("play_game_vote", {
+            title: "Vote for an answer",
+            answersAndLetters: data,
+            valErrors: valErrors.array(),
+          });
+        }
+      );
+    } else {
+      // data from form is valid -> continue
+
+      // save the playerVote in the session
+      req.session.playerVote = req.body.playerVote;
+      req.session.save((err) => {
+        if (err) next(err);
+        next();
+      });
+    }
+  },
+
+  // check gameStatus for updates during voting phase
+  function (req, res, next) {
+    async.waterfall(
+      [
+        function (callback) {
+          Session.countProvPlayerVoteByGame_id(res.locals.db_game.id).exec(
+            callback
+          );
+        },
+        function (countPlayerVoted, callback) {
+          if (countPlayerVoted === res.locals.sess_game.totalPlayers) {
+            callback(null, true);
+          } else {
+            callback(null, false);
+          }
+        },
+      ],
+      function (err, readyToChangeGameStatus) {
+        if (err) return next(err);
+        if (readyToChangeGameStatus) {
+          next();
+        } else {
+          // redirect to same URL
+          res.redirect(req.originalUrl);
+        }
+      }
+    );
+  },
+
+  // gameStatus should be changed and further corresponding actions executed
+  function (req, res, next) {
+    Game.findByIdAndUpdate(
+      res.locals.db_game.id,
+      { gameStatus: "showVotingResults" },
+      {},
+      (err) => {
+        if (err) return next(err);
+        res.redirect(`/play/${res.locals.db_game.id}/results`);
       }
     );
   },
