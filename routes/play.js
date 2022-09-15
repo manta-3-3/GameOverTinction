@@ -28,14 +28,10 @@ router.get("/:game_id/vote", playController.get_play_game_vote);
 // POST request for playing specified game during voting phase
 router.post("/:game_id/vote", playController.post_play_game_vote);
 
-// TODO: GET request for playing specified game during showVotingResults phase
-router.get("/:game_id/results", function (req, res, next) {
-  res.send(`NOT IMPLEMENTED: ${req.method} ${req.path} route`);
-});
+// GET request for playing specified game during showVotingResults phase
+router.get("/:game_id/results", playController.get_play_game_results);
 
-// TODO: POST request for playing specified game during showVotingResults phase
-router.post("/:game_id/results", function (req, res, next) {
-  res.send(`NOT IMPLEMENTED: ${req.method} ${req.path} route`);
-});
+// POST request for playing specified game during showVotingResults phase
+router.post("/:game_id/results", playController.post_play_game_results);
 
 module.exports = router;

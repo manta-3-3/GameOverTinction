@@ -1,0 +1,36 @@
+extends layout_baseGame
+
+block game_content
+  // Your vote
+  div(class="alert alert-info py-2", role="alert")
+    h5(class="alert-heading fw-bolder") You voted for
+    hr(class= "mb-1 mt-0")
+    h6(class="card-title fst-italic")= sess_user.playerVote
+  // Results
+  h5 You can see the results of this round below
+  div(class="vstack gap-1")
+    each ansLetCrea in answersLettersCreators
+      div(class="card text-bg-light border-primary my-2")
+        div(class="card-body py-2")
+          h6(class="card-title fst-italic") #[strong #{ansLetCrea.session.answerLetter}.] #{ansLetCrea.session.playerAnswer}
+          hr(class= "mb-2 mt-0")
+          h6(class="card-subtitle mb-2") 
+            span(class="badge text-bg-dark") by #{ansLetCrea.session.playerName}
+  // Ready for next round form
+  form(method='POST', action='', class="my-4")
+    // Submit button
+    button(type="submit", class="btn btn-primary w-100") Click if your ready for the next round
+  //Waiting for next round
+  if (sess_user.readyForNextRound)
+    div(class="container-fluid text-center text-bg-warning rounded py-2 my-4")
+      div(class="row")
+        div(class="col")
+          p(class="fs-6 fw-semibold m-0") Waiting for next round
+        div(class="col")
+          div(class="d-flex justify-content-center")
+            div(class="spinner-border", role="status")
+              span(class="visually-hidden") Loading...
+        div(class="col")
+          p(class="fs-6 fw-semibold m-0") Maybe site reload required
+  // Quit Button-Link
+  a(class="btn btn-outline-primary w-100", href="/quit", role="button") Quit

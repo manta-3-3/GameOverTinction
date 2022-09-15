@@ -93,6 +93,7 @@ exports.post_join_game = [
       req.session.playerAnswer = null;
       req.session.answerLetter = null;
       req.session.playerVote = null;
+      req.session.readyForNextRound = false;
       // redirect to the play route of this game
       res.redirect(`/play/${req.params.game_id}`);
     });

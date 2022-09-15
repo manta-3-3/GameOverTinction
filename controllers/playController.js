@@ -286,3 +286,81 @@ exports.post_play_game_vote = [
     );
   },
 ];
+
+exports.get_play_game_results = function (req, res, next) {
+  Session.findAnswersLettersCreatorsByGame_id(res.locals.db_game.id).exec(
+    (err, data) => {
+      if (err) next(err);
+      res.render("play_game_results", {
+        title: "Show Results",
+        answersLettersCreators: data,
+      });
+    }
+  );
+};
+
+exports.post_play_game_results = [
+  // set readyForNextRound to true in the session
+  function (req, res, next) {
+    req.session.readyForNextRound = true;
+    req.session.save((err) => {
+      if (err) next(err);
+      next();
+    });
+  },
+
+  // check gameStatus for updates during showVotingResults phase
+  function (req, res, next) {
+    async.waterfall(
+      [
+        function (callback) {
+          Session.countReadyForNextRoundByGame_id(res.locals.db_game.id).exec(
+            callback
+          );
+        },
+        function (countReadyForNextRound, callback) {
+          if (countReadyForNextRound === res.locals.sess_game.totalPlayers) {
+            callback(null, true);
+          } else {
+            callback(null, false);
+          }
+        },
+      ],
+      function (err, readyToChangeGameStatus) {
+        if (err) return next(err);
+        if (readyToChangeGameStatus) {
+          next();
+        } else {
+          // redirect to same URL
+          res.redirect(req.originalUrl);
+        }
+      }
+    );
+  },
+
+  // gameStatus should be changed and further corresponding actions executed
+  function (req, res, next) {
+    async.parallel(
+      [
+        function (callback) {
+          Game.findByIdAndUpdate(
+            res.locals.db_game.id,
+            { gameStatus: "collectingAnswers" },
+            {},
+            callback
+          );
+        },
+        // reset all sessions for this game for a new round
+        function (callback) {
+          Session.resetForNewRoundByGame_id(res.locals.db_game.id).exec(
+            callback
+          );
+        },
+      ],
+      function (err) {
+        if (err) return next(err);
+        res.redirect(`/play/${res.locals.db_game.id}/answer`);
+      }
+    );
+  },
+];
