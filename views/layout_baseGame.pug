@@ -4,8 +4,7 @@ block content
   div(class="container-fluid sticky-top text-bg-dark bg-gradient rounded-top mb-3")
     div(class="row py-2 border-bottom border-secondary border-3")
       div(class="col py-1 ") 
-        span(class="badge text-bg-light fw-bolder")
-          span(class="text-bg-light") Game: #{db_game.name}
+        span(class="badge text-bg-light") Game: #{db_game.name}
       div(class="col py-1 ") 
         span(class="badge text-bg-light") Ingame: #{sess_game.totalPlayers} / #{db_game.maxPlayers} Players
       div(class="col py-1 ") 
@@ -13,8 +12,11 @@ block content
     div(class="row py-2")
       div(class="col py-1") 
         span(class="badge text-bg-light") Player: #{sess_user.playerName}
-      div(class="col py-1") 
-        span(class="badge text-bg-light") Color: #{sess_user.playerColor}
+      div(class="col py-1")
+        span(class="badge text-bg-light") 
+          div(class="hstack gap-1")
+            span Color:
+            div(class="border border-dark border-2", style=("width:2.2em;height:2.2em;border-radius:50%;background:"+sess_user.playerColor+";"))
   h1= title
   hr
   block game_content

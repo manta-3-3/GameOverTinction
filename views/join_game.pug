@@ -28,16 +28,23 @@ block content
     // Player Color
     div(class="mb-3")
       label(for="playerColor", class="form-label fw-bolder fs-6") Player Color:
-      select(id="playerColor", class="form-select")
-        option(value="none", selected) Choose your Player Color
-        option(value="red") Red
-        option(value="green") Greeen
-        option(value="blue") Blue
-        option(value="yellow") Yellow
-        option(value="black") Black  
+      select(id="playerColor", name="playerColor", class="form-select", required)
+        option(value="", selected) Choose your Player Color
+        option(value="#f7b00a") Yellow
+        option(value="#091adb") Blue
+        option(value="#ba1c1c") Red
+        option(value="#c514d9") Pink
+        option(value="#21d9d3") Cyan
+        option(value="#0a6118") Greeen
+        option(value="#f2efe1") White
+        option(value="#4a4a4a") Gray
+        option(value="#1b1c19") Black  
     // Game Password
     div(class="mb-3")
       label(for="gamePassword", class="form-label fw-bolder fs-6") Game Password:
       input(id="gamePassword", type="password", class="form-control", placeholder="Enter Password for this Game here", , name="gamePassword", required="true")
     // Submit Button
-    button(type="submit", class="btn btn-primary") Submit
+    button(type="submit", class="btn btn-primary w-100") Submit
+  // Back to Select Game Button-Link
+  a(class="btn btn-outline-primary w-100 my-4", href="/join", role="button") Back to Select Game Menu
+  

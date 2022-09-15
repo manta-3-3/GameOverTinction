@@ -34,7 +34,15 @@ exports.post_join_game = [
     .withMessage("Player Name cannot be longer than 40 characters.")
     .isAlphanumeric()
     .withMessage("Player Name has non-alphanumeric characters."),
-  // TODO: body("playerColor") NOT IMPLEMENTED YET
+  body("playerColor")
+    .exists()
+    .withMessage("No Player Color field sent!")
+    .bail()
+    .isLength({ min: 1 })
+    .withMessage("Player Color field empty")
+    .bail()
+    .isHexColor()
+    .withMessage("Player Color isn't a Hex-Color Value!"),
   body("gamePassword")
     .trim()
     .escape()
@@ -89,7 +97,7 @@ exports.post_join_game = [
       // assigne data to session
       req.session.game_id = req.params.game_id;
       req.session.playerName = req.body.playerName;
-      req.session.playerColor = "none"; // TODO: later req.body.playerColor
+      req.session.playerColor = req.body.playerColor;
       req.session.playerAnswer = null;
       req.session.answerLetter = null;
       req.session.playerVote = null;
