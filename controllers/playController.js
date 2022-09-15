@@ -23,33 +23,36 @@ exports.authForGame_id = function (req, res, next) {
   if (req.session.game_id !== req.params.game_id) {
     return res.redirect(`/join/${req.params.game_id}`);
   }
-  //TODO: callback hell, fix it with async parallel
-  // fetch game for this game_id from database
-  Game.findById(req.params.game_id)
-    .select("-password")
-    .exec(function (err, db_game) {
+  // fetch game infos for this game_id from database
+  async.parallel(
+    {
+      // fetch game for this game_id from database
+      db_game(callback) {
+        Game.findById(req.params.game_id).select("-password").exec(callback);
+      },
+      // fetch current countTotalPlayers for this game_id from sessions
+      countTotalPlayers(callback) {
+        Session.countTotalPlayersByGame_id(req.params.game_id).exec(callback);
+      },
+    },
+    function (err, results) {
       if (err) return next(err);
-      if (db_game == null) {
-        // no results
+      if (results.db_game == null) {
+        // No such game found
         const err = new Error("Game not found");
         err.status = 404;
         return next(err);
       }
       // assign db_game to locals
-      res.locals.db_game = db_game;
-      // fetch other game infos from sessions and assign to locals
-      Session.countTotalPlayersByGame_id(db_game.id).exec(function (
-        err,
-        count
-      ) {
-        if (err) return next(err);
-        res.locals.sess_game = { totalPlayers: count };
-        // assign session data to locals
-        res.locals.sess_user = req.session;
-        // access permitted go on
-        next();
-      });
-    });
+      res.locals.db_game = results.db_game;
+      // assign countTotalPlayers to locals
+      res.locals.sess_game = { totalPlayers: results.countTotalPlayers };
+      // assign user session data to locals
+      res.locals.sess_user = req.session;
+      // access permitted go on
+      next();
+    }
+  );
 };
 
 // middleware to controle the current gameStatus route flow
