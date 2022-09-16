@@ -1,20 +1,34 @@
 extends layout
 
 block content
-  h1= title
-  h5 Welcome to #{title}
-  div(class="container-fluid border text-center")
-    br
-    br
-    p ********Place for Game Explanation********
-    br
-  br
-  div(class="container-fluid border")
-    div(class="row gx-5")
-      div(class="col")
-        a(href="/join", class="btn btn-primary") Play Game Session
-      div(class="col")
-        a(href="", class="btn btn-outline-primary") Admin/Moderator Login
+  header(class="container-fluid text-center text-bg-dark bg-gradient rounded-top py-3 mb-4") 
+    h1 GameOverTinction
+  main(class="container-fluid text-bg-light border border-dark py-3") 
+    article 
+      h2(class="fw-bolder")= title
+      p(class="fs-6 py-1 m-0") 
+        | Welcome to my little Web-Browser Game called GameOverTinction. #[br] 
+        | It's a copy-cat from the physical board game "Nobodey is perfect", but just brought for you to the world wide web ;&#41; #[br]
+        | However is currently in development and therefore it's just like an helpful extension you can play in combination with the real physical board game.
+      section(class="my-2") 
+        h3 How to play
+        ol(class="list-group list-group-numbered fs-6 py-1 m-0")
+          li(class="list-group-item") Take out your physical "Nobodey is perfect" board game. 
+          li(class="list-group-item") Build up the normal game setup as you would do without this web app.
+          li(class="list-group-item") Click the blue button below to start.
+      section(class="my-2") 
+        h3 Let's go
+        p(class="fs-6 py-1 m-0") Click one of the buttons to continue.
+        div(class="container-fluid text-center px-0 py-1")
+          div(class="row gy-2")
+            div(class="col")
+              a(href="/join", class="btn btn-primary w-100", role="button") Play Game Session
+            div(class="col")
+              a(href="", class="btn btn-outline-primary w-100", role="button") Admin/Moderator Login
+  footer(class="container-fluid text-center text-bg-dark bg-gradient rounded-bottom py-3 mt-4")
+    a(href="https://github.com/manta-3-3/GameOverTinction" class="fs-6 my-1") GameOverTinction
+    p(class="fs-6 my-1") ©Copyright 2022 by manta-3-3. All rights reversed.
+    a(href="https://github.com/manta-3-3" class="fs-6 my-1") Github manta-3-3
 
     
   
