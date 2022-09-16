@@ -1,0 +1,16 @@
+extends layout
+
+block content
+  h1= title
+  hr
+  h5 please select one of the availble games below to join
+  if (list_games.length===0)
+    h5(class="alert alert-info", role="alert") Sorry, no games currently available!
+  else
+    div(class="vstack gap-3 py-3 my-4")
+      each game in list_games
+        div(class="card text-bg-light")
+          div(class="card-body")
+            h5(class="card-title fw-bold")= game.name
+            p(class="fs-6 ms-1") - / #{game.maxPlayers} players joined
+            a(href=game.url, class="btn btn-primary py-2 px-5") Join

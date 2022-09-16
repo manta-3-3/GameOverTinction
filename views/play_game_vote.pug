@@ -19,11 +19,11 @@ block game_content
   // Vote Form
   form(method='POST', action='', class="my-4")
     // Vote Radios
-    div(class="my-2")
+    ul(class="list-group mb-3")
       each aNl in answersAndLetters
-        div(class="form-check")
-          input(class="form-check-input", type="radio", name="playerVote", id=("radio_"+aNl.session.answerLetter), value=(aNl.session.answerLetter+". "+aNl.session.playerAnswer), required)
-          label(class="form-check-label", for=("radio_"+aNl.session.answerLetter)) #[strong #{aNl.session.answerLetter}.] #{aNl.session.playerAnswer} 
+        li(class="list-group-item fs-6")
+          input(class="form-check-input m-0 me-2", type="radio", name="playerVote", id=("radio_"+aNl.session.answerLetter), value=(aNl.session.answerLetter+". "+aNl.session.playerAnswer), required)
+          label(class="form-check-label pe-5", for=("radio_"+aNl.session.answerLetter)) #[strong #{aNl.session.answerLetter}.] #{aNl.session.playerAnswer} 
     // Submit Button
-    button(type="submit", class="btn btn-primary") Submit
-  a(class="btn btn-outline-primary w-100", href="/quit", role="button") Quit
+    button(type="submit", class="btn btn-primary w-100") Submit
+  a(class="btn btn-outline-primary w-100 my-4", href="/quit", role="button") Quit
