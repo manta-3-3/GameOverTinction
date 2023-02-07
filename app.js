@@ -16,7 +16,6 @@ const indexRouter = require("./routes/index");
 const joinRouter = require("./routes/join");
 const playRouter = require("./routes/play");
 const quitRouter = require("./routes/quit");
-const usersRouter = require("./routes/users"); //TODO: not in use
 
 // create express application
 const app = express();
@@ -42,7 +41,19 @@ app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(helmet()); // secure all routes with helmet by setting various HTTP headers
+// secure all routes with helmet by setting various HTTP headers
+// Sets all of the defaults, but overrides `script-src`
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      "script-src": [
+        "'self'",
+        "https://code.jquery.com/jquery-3.6.1.slim.min.js",
+        "https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js",
+      ],
+    },
+  })
+);
 app.use(compression()); // compress all routes
 
 app.use(express.static(path.join(__dirname, "public")));
@@ -71,7 +82,6 @@ app.use("/", indexRouter);
 app.use("/join", joinRouter);
 app.use("/play", playRouter);
 app.use("/quit", quitRouter);
-app.use("/users", usersRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
