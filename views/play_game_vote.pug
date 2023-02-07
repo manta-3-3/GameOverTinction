@@ -1,29 +1,18 @@
 extends layout_baseGame
 
 block game_content
-  h5 Vote for an answer by ticking an option below
-  // vote already provided
-  if sess_user.playerVote
-    p(class="alert alert-info", role="alert") You already voted below for: #[strong #{sess_user.playerVote}], resubmit to change it!
+  p(class="fs-5 text-white my-3") Vote for an answer by ticking an option below
   // Error Messages
-  if valErrors
-    div(class="alert alert-danger", role="alert")
-      h4(class="alert-heading") Vote Errors!
-      p(class="mb-0") The following errors below occurred during the voting phase to this game
-      hr
-      ul
-        for error in valErrors
-          li!= error.msg
-      hr
-      p(class="mb-0") Please try again
+  section(class="my-3")
+    +formError("Vote",valErrors)
   // Vote Form
-  form(method='POST', action='', class="my-4")
-    // Vote Radios
-    ul(class="list-group mb-3")
-      each aNl in answersAndLetters
-        li(class="list-group-item fs-6")
-          input(class="form-check-input m-0 me-2", type="radio", name="playerVote", id=("radio_"+aNl.session.answerLetter), value=(aNl.session.answerLetter+". "+aNl.session.playerAnswer), required)
-          label(class="form-check-label pe-5", for=("radio_"+aNl.session.answerLetter)) #[strong #{aNl.session.answerLetter}.] #{aNl.session.playerAnswer} 
-    // Submit Button
-    button(type="submit", class="btn btn-primary w-100") Submit
-  a(class="btn btn-outline-primary w-100 my-4", href="/quit", role="button") Quit
+  section(class="card border-primary border-opacity-50 p-2 my-3")
+    form(method='POST', action='')
+      // Vote Radios
+      ul(class="list-group mb-3")
+        each aNl in answersAndLetters
+          li(class="list-group-item fs-6")
+            input(class="form-check-input m-0 me-2", type="radio", name="playerVote", id=("radio_"+aNl.session.answerLetter), value=(aNl.session.answerLetter+". "+aNl.session.playerAnswer), required)
+            label(class="form-check-label pe-5", for=("radio_"+aNl.session.answerLetter)) #[strong #{aNl.session.answerLetter}.] #{aNl.session.playerAnswer} 
+      // Submit Button
+      button(type="submit", class="btn btn-secondary w-100") Submit

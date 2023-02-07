@@ -1,22 +1,45 @@
 extends layout
 
+mixin keyValue(key, value)
+  div(class="row gx-1")
+    div(class="col-auto") 
+      p(class="m-0 fs-6 fw-semibold badge text-bg-secondary text-start border border-1 border-white border-opacity-50")= key
+    div(class="col-auto")
+      p(class="m-0 fs-6 fw-normal badge text-bg-dark text-start border border-1 border-white border-opacity-50")= value
+
 block content
-  div(class="container-fluid sticky-top text-bg-dark bg-gradient rounded-top mb-3")
-    div(class="row py-2 border-bottom border-secondary border-3")
-      div(class="col py-1 ") 
-        span(class="badge text-bg-light") Game: #{db_game.name}
-      div(class="col py-1 ") 
-        span(class="badge text-bg-light") Ingame: #{sess_game.totalPlayers} / #{db_game.maxPlayers} Players
-      div(class="col py-1 ") 
-        span(class="badge text-bg-light") Status: #{db_game.gameStatus}
-    div(class="row py-2")
-      div(class="col py-1") 
-        span(class="badge text-bg-light") Player: #{sess_user.playerName}
-      div(class="col py-1")
-        span(class="badge text-bg-light") 
-          div(class="hstack gap-1")
-            span Color:
-            div(class="border border-dark border-2", style=("width:2.2em;height:2.2em;border-radius:50%;background:"+sess_user.playerColor+";"))
-  h1= title
-  hr
-  block game_content
+  article(id="game")
+    header(id="game_header", class="my-3 container-fluid text-bg-primary rounded-top")
+      div(class="row bg-opacity-50")
+        div(class="col-auto p-2")
+          +keyValue("Game:", db_game.name)
+        div(class="col-auto p-2")
+          +keyValue("Ingame:", sess_game.totalPlayers + "/" + db_game.maxPlayers + " Players")
+        div(class="col-auto p-2")
+          +keyValue("Status:", db_game.gameStatus)
+      div(class="row bg-opacity-50")
+        div(class="col")
+          hr(class="m-0 border-secondary opacity-75")
+      div(class="row bg-opacity-50")
+        div(class="col-auto p-2")
+          +keyValue("Player:", sess_user.playerName)
+        div(class="col-auto p-2")
+          //+keyValue("Color:", "colorValue")
+          div(class="row gx-1")
+            div(class="col-auto") 
+              p(class="m-0 fs-6 fw-semibold badge text-bg-secondary text-start border border-1 border-white border-opacity-50") Color:
+            div(class="col-auto")
+              div(class="border border-dark border-2", style=("width:2em;height:2em;border-radius:50%;background:"+sess_user.playerColor+";"))
+    section(id="game_title", class="my-3")
+      h1(class="display-1")= title
+    hr
+    article(id="game_content", class="my-3")
+      block game_content
+    hr
+    footer(id="game_footer", class="my-3")
+      div(class="container-fluid text-center p-0")
+        div(class="row")
+          div(class="col")
+            a(class="btn btn-outline-primary w-100", href="/quit", role="button") Quit
+          div(class="col")
+            a(class="btn btn-primary w-100 border border-2 border-primary", href=db_game.continueURL, role="button") Continue

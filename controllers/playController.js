@@ -5,25 +5,19 @@ const async = require("async");
 const Game = require("../models/game");
 const Session = require("../models/session");
 
-// mapping gameStatus from database to corresponding route and vice versa
-const routeToDb = {
-  answer: "collectingAnswers",
-  vote: "voting",
-  results: "showVotingResults",
-};
-const dbToRoute = {
-  collectingAnswers: "answer",
-  voting: "vote",
-  showVotingResults: "results",
-};
-
-// middleware to check if this user got access to this game via session-cookie and fetch game-info form database
+// middleware to check if this user got access to this game via session-cookie
 exports.authForGame_id = function (req, res, next) {
   // check access by session-cookie
   if (req.session.game_id !== req.params.game_id) {
     return res.redirect(`/join/${req.params.game_id}`);
+  } else {
+    // access permitted go on
+    next();
   }
-  // fetch game infos for this game_id from database
+};
+
+// midleware fetch game-info form database for GameInfoHeader
+exports.fetchForGameInfoHeader = function (req, res, next) {
   async.parallel(
     {
       // fetch game for this game_id from database
@@ -49,7 +43,7 @@ exports.authForGame_id = function (req, res, next) {
       res.locals.sess_game = { totalPlayers: results.countTotalPlayers };
       // assign user session data to locals
       res.locals.sess_user = req.session;
-      // access permitted go on
+      // go on
       next();
     }
   );
@@ -57,12 +51,10 @@ exports.authForGame_id = function (req, res, next) {
 
 // middleware to controle the current gameStatus route flow
 exports.controlGameStatus = function (req, res, next) {
-  if (res.locals.db_game.gameStatus === routeToDb[req.params.gameStatus]) {
+  if (res.locals.db_game.continueURL === req.originalUrl) {
     next();
   } else {
-    res.redirect(
-      `/play/${req.params.game_id}/${dbToRoute[res.locals.db_game.gameStatus]}`
-    );
+    res.redirect(res.locals.db_game.continueURL);
   }
 };
 
@@ -72,12 +64,8 @@ exports.get_play_index = function (req, res) {
 };
 
 exports.get_play_game_info = function (req, res) {
-  const continueURL = `/play/${req.params.game_id}/${
-    dbToRoute[res.locals.db_game.gameStatus]
-  }`;
   res.render("play_game_info", {
     title: "Welcome to the game!",
-    continueURL: continueURL,
   });
 };
 

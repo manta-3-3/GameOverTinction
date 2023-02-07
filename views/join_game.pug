@@ -1,50 +1,46 @@
 extends layout
 
 block content
-  h1= title
-  hr
-  // Error Messages
-  if valErrors
-    div(class="alert alert-danger", role="alert")
-      h4(class="alert-heading") Login Errors!
-      p(class="mb-0") The following errors below occurred during the login phase to this game
+  article
+    section(class="my-3")
+      h1(class="display-1")= title
       hr
-      ul
-        for error in valErrors
-          li!= error.msg
-      hr
-      p(class="mb-0") Please try again
-  // Login Form
-  form(method='POST', action='')
-    // Game ID
-    div(class="mb-3")
-      label(for="game_id", class="form-label fw-bolder fs-6") For Game ID:
-      input(id="game_id", type="text" ,class="form-control", value=game_id, disabled, readonly)
-    // Player Name
-    div(class="mb-3")
-      label(for="playerName", class="form-label fw-bolder fs-6") Player Name:
-      input(id="playerName", type="text", class="form-control", placeholder="Enter your Player Name here", aria-describedby="playerNameHelp", name="playerName", required="true")
-      div(id="playerNameHelp", class="form-text") max. 40 characters allowed
-    // Player Color
-    div(class="mb-3")
-      label(for="playerColor", class="form-label fw-bolder fs-6") Player Color:
-      select(id="playerColor", name="playerColor", class="form-select", required)
-        option(value="", selected) Choose your Player Color
-        option(value="#f7b00a") Yellow
-        option(value="#091adb") Blue
-        option(value="#ba1c1c") Red
-        option(value="#c514d9") Pink
-        option(value="#21d9d3") Cyan
-        option(value="#0a6118") Green
-        option(value="#f2efe1") White
-        option(value="#4a4a4a") Gray
-        option(value="#1b1c19") Black  
-    // Game Password
-    div(class="mb-3")
-      label(for="gamePassword", class="form-label fw-bolder fs-6") Game Password:
-      input(id="gamePassword", type="password", class="form-control", placeholder="Enter Password for this Game here", , name="gamePassword", required="true")
-    // Submit Button
-    button(type="submit", class="btn btn-primary w-100") Submit
-  // Back to Select Game Button-Link
-  a(class="btn btn-outline-primary w-100 my-4", href="/join", role="button") Back to Select Game Menu
+    // Error Messages
+    section(class="my-3")
+      +formError("Login", valErrors)
+    // Login Form
+    section(class="card border-primary border-opacity-50 p-2 my-3")
+      form(method='POST', action='')
+        // Game ID
+        div(class="mb-3")
+          label(for="game_id", class="form-label fw-bolder fs-6") For Game ID:
+          input(id="game_id", type="text" ,class="form-control", value=game_id, disabled, readonly)
+        // Player Name
+        div(class="mb-3")
+          label(for="playerName", class="form-label fw-bolder fs-6") Player Name:
+          input(id="playerName", type="text", class="form-control", placeholder="Enter your Player Name here", aria-describedby="playerNameHelp", name="playerName", required="true")
+          div(id="playerNameHelp", class="form-text") max. 40 characters allowed
+        // Player Color
+        div(class="mb-3")
+          label(for="playerColor", class="form-label fw-bolder fs-6") Player Color:
+          select(id="playerColor", name="playerColor", class="form-select", required)
+            option(value="", selected) Choose your Player Color
+            option(value="#f7b00a") Yellow
+            option(value="#091adb") Blue
+            option(value="#ba1c1c") Red
+            option(value="#c514d9") Pink
+            option(value="#21d9d3") Cyan
+            option(value="#0a6118") Green
+            option(value="#f2efe1") White
+            option(value="#4a4a4a") Gray
+            option(value="#1b1c19") Black  
+        // Game Password
+        div(class="mb-3")
+          label(for="gamePassword", class="form-label fw-bolder fs-6") Game Password:
+          input(id="gamePassword", type="password", class="form-control", placeholder="Enter Password for this Game here", , name="gamePassword", required="true")
+        // Submit Button
+        button(type="submit", class="btn btn-secondary w-100") Submit
+    // Back to Select Game Button-Link
+    section(class="my-3")
+      a(class="btn btn-outline-secondary w-100", href="/join", role="button") Back to Select Game Menu
   

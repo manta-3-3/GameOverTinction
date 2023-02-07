@@ -1,28 +1,17 @@
 extends layout_baseGame
 
 block game_content
-  h5 Type your answer in the textfield below
-  // answer already provided
-  if sess_user.playerAnswer
-    p(class="alert alert-info", role="alert") You already provided an answer below, resubmit to change it!
+  p(class="fs-5 text-white my-3") Type your answer in the textfield below
   // Error Messages
-  if valErrors
-    div(class="alert alert-danger", role="alert")
-      h4(class="alert-heading") Answer Errors!
-      p(class="mb-0") The following errors below occurred during the answer phase to this game
-      hr
-      ul
-        for error in valErrors
-          li!= error.msg
-      hr
-      p(class="mb-0") Please try again
+  section(class="my-3")
+    +formError("Answer",valErrors)
   // Answer Form
-  form(method='POST', action='', class="my-4")
-    // Answer Text-Field
-    div(class="mb-3")
-      label(for="playerAnswer", class="form-label fw-bolder fs-6") Your Answer:
-      textarea(id="playerAnswer", name="playerAnswer", class="form-control", rows=8, placeholder="Enter your answer here", aria-describedby="playerAnswerHelp", maxlength=250, required="true")= sess_user.playerAnswer
-      div(id="playerAnswerHelp", class="form-text") max. 250 characters allowed
-    // Submit Button
-    button(type="submit", class="btn btn-primary w-100") Submit
-  a(class="btn btn-outline-primary w-100 my-4", href="/quit", role="button") Quit
+  section(class="card border-primary border-opacity-50 p-2 my-3")
+    form(method='POST', action='')
+      // Answer Text-Field
+      div(class="mb-3")
+        label(for="playerAnswer", class="form-label fw-bolder fs-6") Your Answer:
+        textarea(id="playerAnswer", name="playerAnswer", class="form-control", class={"is-valid": sess_user.playerAnswer}, rows=8, placeholder="Enter your answer here", aria-describedby="playerAnswerHelp", maxlength=250, required)= sess_user.playerAnswer
+        div(id="playerAnswerHelp", class="form-text") max. 250 characters allowed
+      // Submit Button
+      button(type="submit", class="btn btn-secondary w-100") Submit

@@ -7,6 +7,9 @@ const playController = require("../controllers/playController");
 // auth for game_id middleware
 router.use("/:game_id", playController.authForGame_id);
 
+// populate gameInfoHeader middleware
+router.use("/:game_id", playController.fetchForGameInfoHeader);
+
 // control current gameStatus middleware
 router.use("/:game_id/:gameStatus", playController.controlGameStatus);
 

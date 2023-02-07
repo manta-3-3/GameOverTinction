@@ -38,6 +38,8 @@ exports.post_join_game = [
     .exists()
     .withMessage("No Player Color field sent!")
     .bail()
+    .trim()
+    .escape()
     .isLength({ min: 1 })
     .withMessage("Player Color field empty")
     .bail()
@@ -61,15 +63,15 @@ exports.post_join_game = [
               );
             },
           },
-          (err, res) => {
+          (err, data) => {
             if (err) return reject(err);
-            if (res.db_game == null) {
+            if (data.db_game == null) {
               return reject("Sorry, No such game exists at the moment!");
             }
-            if (res.sess_countCurrentPlayers >= res.db_game.maxPlayers) {
+            if (data.sess_countCurrentPlayers >= data.db_game.maxPlayers) {
               return reject("Sorry, maximum number of players reached!");
             }
-            if (res.db_game.password !== value) {
+            if (data.db_game.password !== value) {
               return reject("Sorry, Wrong password for this game!");
             }
             return resolve();
@@ -103,7 +105,10 @@ exports.post_join_game = [
       req.session.playerVote = null;
       req.session.readyForNextRound = false;
       // redirect to the play route of this game
-      res.redirect(`/play/${req.params.game_id}`);
+      req.session.save(function (err) {
+        if (err) return next(err);
+        res.redirect(`/play/${req.params.game_id}`);
+      });
     });
   },
 ];
