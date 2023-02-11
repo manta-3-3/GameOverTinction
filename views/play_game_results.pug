@@ -21,7 +21,7 @@ block game_content
     // Submit button
     button(type="submit", class="btn btn-primary w-100") Click if your ready for the next round
   //Waiting for next round
-  if (sess_user.readyForNextRound)
+  if (!sess_user.isInRound)
     div(class="container-fluid text-center text-bg-warning rounded py-2 my-4")
       div(class="row")
         div(class="col")

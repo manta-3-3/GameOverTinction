@@ -2,4 +2,10 @@ extends layout_baseGame
 
 block game_content
   section(class="my-3")
-    h5(class="alert alert-info", role="alert") The game is currently at the #[strong "#{db_game.gameStatus}"] phase!
+    p(class="alert alert-info fs-6", role="alert") 
+      | The game is currently at the #[strong "#{db_game.gameStatus}"] phase!
+  if (!sess_user.isInRound)
+    section(class="my-3")
+      p(class="alert alert-secondary fs-6", role="alert") 
+        | You are currently not part of the ongoing round,
+        | #[strong click the continue button] below if the next round is ready!

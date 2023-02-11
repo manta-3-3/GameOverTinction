@@ -10,6 +10,9 @@ router.use("/:game_id", playController.authForGame_id);
 // populate gameInfoHeader middleware
 router.use("/:game_id", playController.fetchForGameInfoHeader);
 
+// control current game round middleware
+router.use("/:game_id/:gameStatus", playController.controlGameRound);
+
 // control current gameStatus middleware
 router.use("/:game_id/:gameStatus", playController.controlGameStatus);
 

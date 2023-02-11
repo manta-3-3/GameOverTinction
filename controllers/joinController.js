@@ -80,11 +80,11 @@ exports.post_join_game = [
       });
     }),
 
-  function (req, res) {
-    // extract the validation errors from a request
+  // extract the validation errors from a request
+  function (req, res, next) {
     const valErrors = validationResult(req);
     if (!valErrors.isEmpty()) {
-      // there are errors. Render form again with sanitized values/errors messages
+      // there are errors -> render form again with sanitized values/errors messages
       return res.render("join_game", {
         title: "Login Game",
         game_id: req.params.game_id,
@@ -92,7 +92,22 @@ exports.post_join_game = [
       });
     }
     // data from form is valid -> continue
+    next();
+  },
 
+  // fetch gameStatus and assigne to locals
+  function (req, res, next) {
+    Game.findById(req.params.game_id)
+      .select("gameStatus")
+      .exec((err, data) => {
+        if (err) return next(err);
+        res.locals.gameStatus = data.gameStatus;
+        next();
+      });
+  },
+
+  // create new session and assigne data to it
+  function (req, res, next) {
     // reset session all session data is lost -> logged out from all games
     req.session.regenerate(function (err) {
       if (err) return next(err);
@@ -100,13 +115,20 @@ exports.post_join_game = [
       req.session.game_id = req.params.game_id;
       req.session.playerName = req.body.playerName;
       req.session.playerColor = req.body.playerColor;
+      req.session.playerPoints = 0;
       req.session.playerAnswer = null;
       req.session.answerLetter = null;
       req.session.playerVote = null;
-      req.session.readyForNextRound = false;
-      // redirect to the play route of this game
+      // only place player in round if game is at collectingAnswers phase
+      if (res.locals.gameStatus === "collectingAnswers") {
+        req.session.isInRound = true;
+      } else {
+        req.session.isInRound = false;
+      }
+      // save data immediately back to db
       req.session.save(function (err) {
         if (err) return next(err);
+        // redirect to the play route of this game
         res.redirect(`/play/${req.params.game_id}`);
       });
     });

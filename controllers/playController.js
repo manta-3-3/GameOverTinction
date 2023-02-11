@@ -28,6 +28,10 @@ exports.fetchForGameInfoHeader = function (req, res, next) {
       countTotalPlayers(callback) {
         Session.countTotalPlayersByGame_id(req.params.game_id).exec(callback);
       },
+      // fetch current countPlayersInRound for this game_id from sessions
+      countPlayersInRound(callback) {
+        Session.countPlayersInRoundByGame_id(req.params.game_id).exec(callback);
+      },
     },
     function (err, results) {
       if (err) return next(err);
@@ -39,8 +43,11 @@ exports.fetchForGameInfoHeader = function (req, res, next) {
       }
       // assign db_game to locals
       res.locals.db_game = results.db_game;
-      // assign countTotalPlayers to locals
-      res.locals.sess_game = { totalPlayers: results.countTotalPlayers };
+      // assign countTotalPlayers and countPlayersInRound to locals
+      res.locals.sess_game = {
+        totalPlayers: results.countTotalPlayers,
+        playersInRound: results.countPlayersInRound,
+      };
       // assign user session data to locals
       res.locals.sess_user = req.session;
       // go on
@@ -49,8 +56,17 @@ exports.fetchForGameInfoHeader = function (req, res, next) {
   );
 };
 
+// middleware to check if player is in current round
+exports.controlGameRound = function (req, res, next) {
+  // player can pass if he is in current round
+  if (res.locals.sess_user.isInRound) return next();
+  // else redirect to waiting page e.g welcome/info page for this game
+  return res.redirect(`/play/${res.locals.db_game._id}`);
+};
+
 // middleware to controle the current gameStatus route flow
 exports.controlGameStatus = function (req, res, next) {
+  // controle gameStatus route
   if (res.locals.db_game.continueURL === req.originalUrl) {
     next();
   } else {
@@ -60,7 +76,9 @@ exports.controlGameStatus = function (req, res, next) {
 
 // TODO:
 exports.get_play_index = function (req, res) {
-  res.send(`NOT IMPLEMENTED: ${req.method} ${req.path} route`);
+  res.render("play_index", {
+    title: "Happy Playing",
+  });
 };
 
 exports.get_play_game_info = function (req, res) {
@@ -115,7 +133,7 @@ exports.post_play_game_answer = [
           );
         },
         function (countPlayerAnswered, callback) {
-          if (countPlayerAnswered === res.locals.sess_game.totalPlayers) {
+          if (countPlayerAnswered === res.locals.sess_game.playersInRound) {
             callback(null, true);
           } else {
             callback(null, false);
@@ -151,7 +169,7 @@ exports.post_play_game_answer = [
           //---------add letters------------
           // generate random ordered alphabet array, max 26 letters, so max 26 Players per game
           const unshuffledLetArr = [
-            ...Array(res.locals.sess_game.totalPlayers),
+            ...Array(res.locals.sess_game.playersInRound),
           ].map((_, i) => String.fromCharCode(i + 65));
           // shuffle the unshuffledLetArr
           const shuffledLetArr = unshuffledLetArr
@@ -175,7 +193,7 @@ exports.post_play_game_answer = [
           //---------add letters finished------------
         },
       ],
-      function (err) {
+      (err) => {
         if (err) return next(err);
         res.redirect(`/play/${res.locals.db_game.id}/vote`);
       }
@@ -183,7 +201,7 @@ exports.post_play_game_answer = [
   },
 ];
 
-exports.get_play_game_vote = function (req, res) {
+exports.get_play_game_vote = function (req, res, next) {
   Session.findAnswersAndLettersByGame_id(res.locals.db_game.id).exec(
     (err, data) => {
       if (err) next(err);
@@ -245,7 +263,7 @@ exports.post_play_game_vote = [
           );
         },
         function (countPlayerVoted, callback) {
-          if (countPlayerVoted === res.locals.sess_game.totalPlayers) {
+          if (countPlayerVoted === res.locals.sess_game.playersInRound) {
             callback(null, true);
           } else {
             callback(null, false);
@@ -291,9 +309,9 @@ exports.get_play_game_results = function (req, res, next) {
 };
 
 exports.post_play_game_results = [
-  // set readyForNextRound to true in the session
+  // set isInRound to false
   function (req, res, next) {
-    req.session.readyForNextRound = true;
+    req.session.isInRound = false;
     req.session.save((err) => {
       if (err) next(err);
       next();
@@ -319,12 +337,9 @@ exports.post_play_game_results = [
       ],
       function (err, readyToChangeGameStatus) {
         if (err) return next(err);
-        if (readyToChangeGameStatus) {
-          next();
-        } else {
-          // redirect to same URL
-          res.redirect(req.originalUrl);
-        }
+        if (readyToChangeGameStatus) return next();
+        // redirect to the play route of this game
+        return res.redirect(`/play/${res.locals.db_game.id}`);
       }
     );
   },
@@ -348,7 +363,7 @@ exports.post_play_game_results = [
           );
         },
       ],
-      function (err) {
+      (err) => {
         if (err) return next(err);
         res.redirect(`/play/${res.locals.db_game.id}/answer`);
       }
