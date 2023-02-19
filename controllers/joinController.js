@@ -28,26 +28,43 @@ exports.get_join_game = function (req, res) {
 exports.post_join_game = [
   // validate and sanitize fields
   body("playerName")
+    .exists()
+    .withMessage("No playerName field sent!")
+    .bail()
+    .isString()
+    .withMessage("playerName isn't a String!")
+    .bail()
     .trim()
     .escape()
+    .notEmpty()
+    .withMessage("playerName is empty!")
     .isLength({ max: 40 })
-    .withMessage("Player Name cannot be longer than 40 characters.")
+    .withMessage("playerName cannot be longer than 40 characters!")
     .isAlphanumeric()
-    .withMessage("Player Name has non-alphanumeric characters."),
+    .withMessage("playerName has non-alphanumeric characters!"),
   body("playerColor")
     .exists()
-    .withMessage("No Player Color field sent!")
+    .withMessage("No playerColor field sent!")
+    .bail()
+    .isString()
+    .withMessage("playerColor isn't a String!")
     .bail()
     .trim()
     .escape()
-    .isLength({ min: 1 })
-    .withMessage("Player Color field empty")
-    .bail()
     .isHexColor()
-    .withMessage("Player Color isn't a Hex-Color Value!"),
+    .withMessage("playerColor isn't a hex-color value!"),
   body("gamePassword")
+    .exists()
+    .withMessage("No gamePassword field sent!")
+    .bail()
+    .isString()
+    .withMessage("gamePassword isn't a String!")
+    .bail()
     .trim()
     .escape()
+    .notEmpty()
+    .withMessage("gamePassword is empty!")
+    .bail()
     .custom(function (value, { req }) {
       return new Promise((resolve, reject) => {
         async.parallel(
