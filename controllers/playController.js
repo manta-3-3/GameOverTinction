@@ -5,6 +5,9 @@ const async = require("async");
 const Game = require("../models/game");
 const Session = require("../models/session");
 
+// require game utilities
+const gameUtil = require("../utilities/util_game");
+
 // middleware to check if this user got access to this game via session-cookie
 exports.authForGame_id = function (req, res, next) {
   // check access by session-cookie
@@ -28,10 +31,6 @@ exports.fetchForGameInfoHeader = function (req, res, next) {
       countTotalPlayers(callback) {
         Session.countTotalPlayersByGame_id(req.params.game_id).exec(callback);
       },
-      // fetch current countPlayersInRound for this game_id from sessions
-      countPlayersInRound(callback) {
-        Session.countPlayersInRoundByGame_id(req.params.game_id).exec(callback);
-      },
     },
     function (err, results) {
       if (err) return next(err);
@@ -46,7 +45,6 @@ exports.fetchForGameInfoHeader = function (req, res, next) {
       // assign countTotalPlayers and countPlayersInRound to locals
       res.locals.sess_game = {
         totalPlayers: results.countTotalPlayers,
-        playersInRound: results.countPlayersInRound,
       };
       // assign user session data to locals
       res.locals.sess_user = req.session;
@@ -108,7 +106,6 @@ exports.post_play_game_answer = [
     .withMessage("playerAnswer is empty!")
     .isLength({ max: 250 })
     .withMessage("playerAnswer cannot be longer than 250 characters!"),
-
   function (req, res, next) {
     // extract the validation errors from a request
     const valErrors = validationResult(req);
@@ -125,85 +122,22 @@ exports.post_play_game_answer = [
     req.session.playerAnswer = req.body.playerAnswer;
     req.session.save((err) => {
       if (err) next(err);
-      next();
+      return next();
     });
   },
 
-  // check gameStatus for updates during collectingAnswers phase
+  // set gameId at locals for further gameUpdate
   function (req, res, next) {
-    async.waterfall(
-      [
-        function (callback) {
-          Session.countProvPlayerAnswerByGame_id(res.locals.db_game.id).exec(
-            callback
-          );
-        },
-        function (countPlayerAnswered, callback) {
-          if (countPlayerAnswered === res.locals.sess_game.playersInRound) {
-            callback(null, true);
-          } else {
-            callback(null, false);
-          }
-        },
-      ],
-      function (err, readyToChangeGameStatus) {
-        if (err) return next(err);
-        if (readyToChangeGameStatus) {
-          next();
-        } else {
-          // redirect to same URL
-          res.redirect(req.originalUrl);
-        }
-      }
-    );
+    res.locals.gameId = res.locals.db_game._id;
+    return next();
   },
 
-  // gameStatus should be changed and further corresponding actions executed
-  function (req, res, next) {
-    async.parallel(
-      [
-        function (callback) {
-          //---------fetch game and update----------
-          Game.findByIdAndUpdate(
-            res.locals.db_game.id,
-            { gameStatus: "voting" },
-            {},
-            callback
-          );
-        },
-        async function (callback) {
-          //---------add letters------------
-          // generate random ordered alphabet array, max 26 letters, so max 26 Players per game
-          const unshuffledLetArr = [
-            ...Array(res.locals.sess_game.playersInRound),
-          ].map((_, i) => String.fromCharCode(i + 65));
-          // shuffle the unshuffledLetArr
-          const shuffledLetArr = unshuffledLetArr
-            .map((value) => ({ value, sort: Math.random() }))
-            .sort((a, b) => a.sort - b.sort)
-            .map(({ value }) => value);
-          let letInd = 0;
-          // fetch answers form session an assigne letters
-          const cursor = Session.findAnswersByGame_id(
-            res.locals.db_game.id
-          ).cursor();
-          for (
-            let doc = await cursor.next();
-            doc != null;
-            doc = await cursor.next()
-          ) {
-            doc.session.answerLetter = shuffledLetArr[letInd];
-            await doc.save();
-            letInd++;
-          }
-          //---------add letters finished------------
-        },
-      ],
-      (err) => {
-        if (err) return next(err);
-        res.redirect(`/play/${res.locals.db_game.id}/vote`);
-      }
-    );
+  // updateGame
+  gameUtil.updateGame,
+
+  // redirect
+  function (req, res) {
+    return res.redirect(res.locals.continueURL);
   },
 ];
 
@@ -261,46 +195,18 @@ exports.post_play_game_vote = [
     });
   },
 
-  // check gameStatus for updates during voting phase
+  // set gameId at locals for further gameUpdate
   function (req, res, next) {
-    async.waterfall(
-      [
-        function (callback) {
-          Session.countProvPlayerVoteByGame_id(res.locals.db_game.id).exec(
-            callback
-          );
-        },
-        function (countPlayerVoted, callback) {
-          if (countPlayerVoted === res.locals.sess_game.playersInRound) {
-            callback(null, true);
-          } else {
-            callback(null, false);
-          }
-        },
-      ],
-      function (err, readyToChangeGameStatus) {
-        if (err) return next(err);
-        if (readyToChangeGameStatus) {
-          next();
-        } else {
-          // redirect to same URL
-          res.redirect(req.originalUrl);
-        }
-      }
-    );
+    res.locals.gameId = res.locals.db_game._id;
+    return next();
   },
 
-  // gameStatus should be changed and further corresponding actions executed
-  function (req, res, next) {
-    Game.findByIdAndUpdate(
-      res.locals.db_game.id,
-      { gameStatus: "showVotingResults" },
-      {},
-      (err) => {
-        if (err) return next(err);
-        res.redirect(`/play/${res.locals.db_game.id}/results`);
-      }
-    );
+  // updateGame
+  gameUtil.updateGame,
+
+  // redirect
+  function (req, res) {
+    return res.redirect(res.locals.continueURL);
   },
 ];
 
@@ -326,55 +232,17 @@ exports.post_play_game_results = [
     });
   },
 
-  // check gameStatus for updates during showVotingResults phase
+  // set gameId at locals for further gameUpdate
   function (req, res, next) {
-    async.waterfall(
-      [
-        function (callback) {
-          Session.countReadyForNextRoundByGame_id(res.locals.db_game.id).exec(
-            callback
-          );
-        },
-        function (countReadyForNextRound, callback) {
-          if (countReadyForNextRound === res.locals.sess_game.totalPlayers) {
-            callback(null, true);
-          } else {
-            callback(null, false);
-          }
-        },
-      ],
-      function (err, readyToChangeGameStatus) {
-        if (err) return next(err);
-        if (readyToChangeGameStatus) return next();
-        // redirect to the play route of this game
-        return res.redirect(`/play/${res.locals.db_game.id}`);
-      }
-    );
+    res.locals.gameId = res.locals.db_game._id;
+    return next();
   },
 
-  // gameStatus should be changed and further corresponding actions executed
-  function (req, res, next) {
-    async.parallel(
-      [
-        function (callback) {
-          Game.findByIdAndUpdate(
-            res.locals.db_game.id,
-            { gameStatus: "collectingAnswers" },
-            {},
-            callback
-          );
-        },
-        // reset all sessions for this game for a new round
-        function (callback) {
-          Session.resetForNewRoundByGame_id(res.locals.db_game.id).exec(
-            callback
-          );
-        },
-      ],
-      (err) => {
-        if (err) return next(err);
-        res.redirect(`/play/${res.locals.db_game.id}/answer`);
-      }
-    );
+  // updateGame
+  gameUtil.updateGame,
+
+  // redirect
+  function (req, res) {
+    return res.redirect(res.locals.continueURL);
   },
 ];
