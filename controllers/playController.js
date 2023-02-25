@@ -166,15 +166,18 @@ exports.post_play_game_vote = [
     .escape()
     .notEmpty()
     .withMessage("playerVote is empty!")
-    .isLength({ max: 260 })
-    .withMessage("playerVote cannot be longer than 260 characters!"),
+    .isLength({ max: 1 })
+    .withMessage("playerVote can only be one letter!")
+    .bail()
+    .isAlpha()
+    .withMessage("playerVote isn't an alphabetical letter!"),
 
   function (req, res, next) {
     // extract the validation errors from a request
     const valErrors = validationResult(req);
     if (!valErrors.isEmpty()) {
       // there are errors. Render form again with sanitized values/errors messages
-      Session.findAnswersAndLettersByGame_id(res.locals.db_game.id).exec(
+      return Session.findAnswersAndLettersByGame_id(res.locals.db_game.id).exec(
         (err, data) => {
           if (err) return next(err);
           return res.render("play_game_vote", {
@@ -211,15 +214,17 @@ exports.post_play_game_vote = [
 ];
 
 exports.get_play_game_results = function (req, res, next) {
-  Session.findAnswersLettersCreatorsByGame_id(res.locals.db_game.id).exec(
-    (err, data) => {
-      if (err) next(err);
-      res.render("play_game_results", {
+  gameUtil
+    .fetchAndProcessGameResults(res.locals.db_game._id)
+    .then((data) => {
+      return res.render("play_game_results", {
         title: "Show Results",
-        answersLettersCreators: data,
+        resultData: data,
       });
-    }
-  );
+    })
+    .catch((err) => {
+      next(err);
+    });
 };
 
 exports.post_play_game_results = [

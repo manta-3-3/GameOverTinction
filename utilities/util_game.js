@@ -134,3 +134,35 @@ exports.updateGame = async function (req, res, next) {
   }
   return next();
 };
+
+exports.fetchAndProcessGameResults = function (gameId) {
+  return new Promise((resolve, reject) => {
+    Session.findAnswersLettersCreatorsVotesByGame_id(gameId).exec(
+      (err, data) => {
+        if (err) reject(err);
+        const map = new Map();
+        // assigne keyValue pairs to map
+        for (ele of data) {
+          if (!ele.letter) continue;
+          map.set(ele.letter, {
+            creator: ele.creator,
+            letter: ele.letter,
+            answer: ele.answer,
+            voters: [],
+          });
+        }
+        // count votes
+        for (ele of data) {
+          if (!ele.vote) continue;
+          map.get(ele.vote)?.voters.push(ele.creator);
+        }
+        // return array sorted by letter
+        resolve(
+          [...map.values()].sort((a, b) => {
+            return a.letter == b.letter ? 0 : a.letter > b.letter ? 1 : -1;
+          })
+        );
+      }
+    );
+  });
+};

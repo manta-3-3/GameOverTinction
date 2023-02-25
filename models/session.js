@@ -70,7 +70,11 @@ exports.findAnswersAndLettersByGame_id = function (game_id) {
     .where("session.playerAnswer")
     .ne(null)
     .sort({ "session.answerLetter": 1 })
-    .select("-_id session.answerLetter session.playerAnswer");
+    .select({
+      _id: 0,
+      letter: "$session.answerLetter",
+      answer: "$session.playerAnswer",
+    });
 };
 
 // count how many players in round currently have provided an playerVote at specific game_id
@@ -97,9 +101,40 @@ exports.findAnswersLettersCreatorsByGame_id = function (game_id) {
     .where("session.playerName")
     .ne(null)
     .sort({ "session.answerLetter": 1 })
-    .select(
-      "-_id session.answerLetter session.playerAnswer session.playerName"
-    );
+    .select({
+      _id: 0,
+      letter: "$session.answerLetter",
+      answer: "$session.playerAnswer",
+      creator: "$session.playerName",
+    });
+};
+
+// query for specific game_id, where playerName is not null and additionally
+// (answerLetter and playerAnswer) or playerVote is not null,
+// returns array of doc containing only answerLetter, playerAnswer, playerName and playerVote from session
+exports.findAnswersLettersCreatorsVotesByGame_id = function (game_id) {
+  return sessionModel
+    .find({
+      "session.game_id": game_id,
+      "session.playerName": { $ne: game_id },
+      $or: [
+        {
+          $and: [
+            { "session.answerLetter": { $ne: null } },
+            { "session.playerAnswer": { $ne: null } },
+          ],
+        },
+        { "session.playerVote": { $ne: null } },
+      ],
+    })
+    .select({
+      _id: 0,
+      letter: "$session.answerLetter",
+      answer: "$session.playerAnswer",
+      creator: "$session.playerName",
+      vote: "$session.playerVote",
+    })
+    .lean();
 };
 
 // count how many players currently are ready for the next round at specific game_id,

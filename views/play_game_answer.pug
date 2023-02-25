@@ -11,7 +11,11 @@ block game_content
       // Answer Text-Field
       div(class="mb-3")
         label(for="playerAnswer", class="form-label fw-bolder fs-6") Your Answer:
-        textarea(id="playerAnswer", name="playerAnswer", class="form-control", class={"is-valid": sess_user.playerAnswer}, rows=8, placeholder="Enter your answer here", aria-describedby="playerAnswerHelp", maxlength=250, required)= sess_user.playerAnswer
+        textarea(id="playerAnswer", name="playerAnswer", class="form-control", 
+        class=sess_user.playerAnswer ? "is-valid" : "is-invalid", 
+        rows=8, placeholder="Enter your answer here", 
+        aria-describedby="playerAnswerHelp", maxlength=250, 
+        required)= (sess_user.playerAnswer ? sess_user.playerAnswer : localPlayerAnswer)
         div(id="playerAnswerHelp", class="form-text") max. 250 characters allowed
       // Submit Button
       button(type="submit", class="btn btn-secondary w-100") Submit

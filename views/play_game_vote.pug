@@ -9,10 +9,11 @@ block game_content
   section(class="card border-primary border-opacity-50 p-2 my-3")
     form(method='POST', action='')
       // Vote Radios
-      ul(class="list-group mb-3")
+      ul(class="list-group mb-3 border border-2 border-opacity-50", class=sess_user.playerVote ? "border-success" : "border-danger")
         each aNl in answersAndLetters
           li(class="list-group-item fs-6")
-            input(class="form-check-input m-0 me-2", type="radio", name="playerVote", id=("radio_"+aNl.session.answerLetter), value=(aNl.session.answerLetter+". "+aNl.session.playerAnswer), required)
-            label(class="form-check-label pe-5", for=("radio_"+aNl.session.answerLetter)) #[strong #{aNl.session.answerLetter}.] #{aNl.session.playerAnswer} 
+            input(class="form-check-input m-0 me-2", type="radio", name="playerVote", id=("radio_"+aNl.letter), 
+            value=aNl.letter, checked=(aNl.letter === sess_user.playerVote), required)
+            label(class="form-check-label pe-5", for=("radio_"+aNl.letter)) #[strong #{aNl.letter}.] #{aNl.answer} 
       // Submit Button
       button(type="submit", class="btn btn-secondary w-100") Submit
