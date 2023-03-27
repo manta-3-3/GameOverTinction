@@ -5,9 +5,9 @@ mixin formError(type, valErrors)
       hr(class="border border-white border-1 border-opacity-50 my-2")
       ul(class="my-0")
         for error in valErrors
-          li(class="fs-6")!= error.msg
+          li!= error.msg
       hr(class="border border-white border-1 border-opacity-50 my-2")
-      p(class="fs-6 fw-semibold mb-0 mt-3") Please try again
+      p(class="fw-semibold mb-0 mt-3") Please try again
 
 doctype html
 html(lang="en")
@@ -26,7 +26,7 @@ html(lang="en")
 
     // add own stylesheet
     link(rel='stylesheet', href='/stylesheets/style.css')
-  body(class="m-0 p-0")
+  body
     header(class="sticky-top")
       nav(class="navbar navbar-expand-lg navbar-dark bg-primary")
         div(class="container-fluid")
@@ -61,6 +61,6 @@ html(lang="en")
     main(class="container-lg p-3 py-lg-5")
       block content
     footer(class="container-fluid text-center py-3 text-bg-primary bg-gradient rounded-bottom bg-opacity-75")
-      a(href="https://github.com/manta-3-3/GameOverTinction" class="fs-6") GameOverTinction
-      p(class="fs-6 my-0 py-2") ©Copyright 2023 by manta-3-3. All rights reserved.
-      a(href="https://github.com/manta-3-3" class="fs-6") Github manta-3-3
+      a(href="https://github.com/manta-3-3/GameOverTinction") GameOverTinction
+      p(class="my-0 py-2") ©Copyright 2023 by manta-3-3. All rights reserved.
+      a(href="https://github.com/manta-3-3") Github manta-3-3

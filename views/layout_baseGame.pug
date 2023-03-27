@@ -7,6 +7,13 @@ mixin keyValue(key, value)
     div(class="col-auto")
       p(class="m-0 fs-6 fw-normal badge text-bg-dark text-start border border-1 border-white border-opacity-50")= value
 
+mixin un-saved(name, val)
+  div(class="d-flex justify-content-end")
+    p(class="m-0 pb-1 px-2 text-white text-opacity-50 bg-opacity-50 rounded-bottom form-text font-monospace",
+    class=val ? "bg-success" : "bg-danger")
+      span(class="fst-italic")= name+" "
+      span= (val ? "saved" : "unsaved")
+
 block content
   article(id="game")
     header(id="game_header", class="my-3 container-fluid text-bg-primary rounded-top")
@@ -40,7 +47,7 @@ block content
     hr
     footer(id="game_footer", class="my-3")
       div(class="container-fluid text-center p-0")
-        div(class="row")
+        div(class="row gy-2")
           div(class="col")
             a(class="btn btn-outline-primary w-100", href="/quit", role="button") Quit
           div(class="col")

@@ -1,7 +1,7 @@
 extends layout_baseGame
 
 block game_content
-  p(class="fs-5 text-white my-3") Vote for an answer by ticking an option below
+  p(class="text-white my-3") Vote for an answer by ticking an option below
   // Error Messages
   section(class="my-3")
     +formError("Vote",valErrors)
@@ -9,11 +9,15 @@ block game_content
   section(class="card border-primary border-opacity-50 p-2 my-3")
     form(method='POST', action='')
       // Vote Radios
-      ul(class="list-group mb-3 border border-2 border-opacity-50", class=sess_user.playerVote ? "border-success" : "border-danger")
-        each aNl in answersAndLetters
-          li(class="list-group-item fs-6")
-            input(class="form-check-input m-0 me-2", type="radio", name="playerVote", id=("radio_"+aNl.letter), 
-            value=aNl.letter, checked=(aNl.letter === sess_user.playerVote), required)
-            label(class="form-check-label pe-5", for=("radio_"+aNl.letter)) #[strong #{aNl.letter}.] #{aNl.answer} 
+      div(class="mb-3")
+        div(class="p-2 border border-2 border-opacity-50", class=sess_user.playerVote ? "border-success" : "border-danger")
+          each aNl in answersAndLetters
+            div(class="form-check my-2")
+              input(class="form-check-input", type="radio", name="playerVote", id=("radio_"+aNl.letter), 
+              value=aNl.letter, checked=(aNl.letter === sess_user.playerVote), required)
+              label(class="form-check-label text-break text-wrap", for=("radio_"+aNl.letter))
+                span(class="text-secondary fw-bold") #{aNl.letter}.&#32;
+                span(class="fst-italic")= aNl.answer
+        +un-saved("vote",!!sess_user.playerVote)
       // Submit Button
       button(type="submit", class="btn btn-secondary w-100") Submit
