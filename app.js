@@ -15,6 +15,7 @@ const mongoDbStore = require("connect-mongo");
 const indexRouter = require("./routes/index");
 const joinRouter = require("./routes/join");
 const playRouter = require("./routes/play");
+const aboutRouter = require("./routes/about");
 const quitRouter = require("./routes/quit");
 
 // create express application
@@ -51,6 +52,7 @@ app.use(
         "https://code.jquery.com/jquery-3.6.1.slim.min.js",
         "https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js",
       ],
+      "connect-src": ["'self'", "https://api.github.com"],
     },
   })
 );
@@ -81,6 +83,7 @@ app.use(expressSession(sessionOptions));
 app.use("/", indexRouter);
 app.use("/join", joinRouter);
 app.use("/play", playRouter);
+app.use("/about", aboutRouter);
 app.use("/quit", quitRouter);
 
 // catch 404 and forward to error handler
