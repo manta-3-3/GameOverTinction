@@ -10,6 +10,7 @@ const helmet = require("helmet");
 const compression = require("compression");
 const expressSession = require("express-session");
 const mongoDbStore = require("connect-mongo");
+const favicon = require("serve-favicon");
 
 // import router modules
 const indexRouter = require("./routes/index");
@@ -57,6 +58,8 @@ app.use(
   })
 );
 app.use(compression()); // compress all routes
+
+app.use(favicon(path.join(__dirname, "public", "favicon.ico")));
 
 app.use(express.static(path.join(__dirname, "public")));
 
