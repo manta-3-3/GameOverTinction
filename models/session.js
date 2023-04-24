@@ -9,6 +9,7 @@ const sessionShema = new mongoose.Schema(
       game_id: String,
       playerName: String,
       playerColor: String,
+      joinTime: Date,
       playerPoints: Number,
       playerAnswer: String,
       answerLetter: String,
@@ -116,7 +117,7 @@ exports.findAnswersLettersCreatorsVotesByGame_id = function (game_id) {
   return sessionModel
     .find({
       "session.game_id": game_id,
-      "session.playerName": { $ne: game_id },
+      "session.playerName": { $ne: null },
       $or: [
         {
           $and: [
@@ -170,4 +171,71 @@ exports.findSessionsByGame_id = function (game_id) {
       "session.game_id": game_id,
     })
     .select("-_id -session.cookie -expires");
+};
+
+/**
+ * aggregation pipeline to get updated moderator of a specific game, where player isInRound
+ * query retunrs the next player which should get moderator based on the givenDate of the current one
+ * @DISCLAIMER only works properly if each player has a unique joinTime
+ * @param {string} game_id specific game
+ * @param {date} givenDate date point to determine (next) mod
+ * @param {boolean} selNext true: take next mod, false: same mod as before if present
+ * @return {Aggregate} aggregation pipeline
+ */
+exports.getUpdatedModerator = function (game_id, givenDate, selNext) {
+  return sessionModel.aggregate([
+    {
+      $match: {
+        "session.game_id": game_id,
+        "session.isInRound": true,
+        "session.joinTime": { [selNext ? "$gt" : "$gte"]: givenDate },
+      },
+    },
+    {
+      $sort: {
+        "session.joinTime": 1,
+      },
+    },
+    {
+      $limit: 1,
+    },
+    {
+      $unionWith: {
+        coll: "sessions",
+        pipeline: [
+          {
+            $match: {
+              "session.game_id": game_id,
+              "session.isInRound": true,
+              "session.joinTime": { [selNext ? "$lte" : "$lt"]: givenDate },
+            },
+          },
+          {
+            $sort: {
+              "session.joinTime": 1,
+            },
+          },
+          {
+            $limit: 1,
+          },
+        ],
+      },
+    },
+    {
+      $sort: {
+        "session.joinTime": -1,
+      },
+    },
+    {
+      $limit: 1,
+    },
+    {
+      $project: {
+        _id: 0,
+        sessionPlayerId: "$_id",
+        playerName: "$session.playerName",
+        joinTime: "$session.joinTime",
+      },
+    },
+  ]);
 };

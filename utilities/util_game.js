@@ -5,6 +5,7 @@ const Game = require("../models/game");
 const Session = require("../models/session");
 
 // updates game with id stored at res.locals.gameId
+// and sets res.locals.continueURL
 exports.updateGame = async function (req, res, next) {
   if (!res.locals.gameId) return next();
   try {
@@ -165,4 +166,40 @@ exports.fetchAndProcessGameResults = function (gameId) {
       }
     );
   });
+};
+
+/**
+ * updates moderator of a specific game
+ * @param {string} game_id specific game
+ * @param {object} currModerator must include the following properties
+ * @property {string} currModerator.sessionPlayerId
+ * @property {date} currModerator.joinTime
+ * @param {boolean} selNext true: take next mod, false: same mod as before if present
+ * @return {Promise<boolean>} boolean indicating if mod was updated
+ */
+exports.updateModerator = function (game_id, currModerator, selNext) {
+  return (
+    Session.getUpdatedModerator(game_id, currModerator.joinTime, selNext)
+      .exec()
+      .then((data) => {
+        if (!data.length) {
+          // no players found
+          return;
+        } else if (data[0].sessionPlayerId === currModerator.sessionPlayerId) {
+          // new found moderator is the same as before
+          return;
+        } else {
+          // update game with new moderator data
+          return Game.findByIdAndUpdate(
+            game_id,
+            {
+              currModerator: data[0],
+            },
+            { new: true, select: "name currModerator" }
+          ).exec();
+        }
+      })
+      // return true if moderator was updated
+      .then((data) => !!data)
+  );
 };

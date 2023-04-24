@@ -112,36 +112,32 @@ exports.post_join_game = [
     next();
   },
 
-  // fetch gameStatus and assigne to locals
-  function (req, res, next) {
-    Game.findById(req.params.game_id)
-      .select("gameStatus")
-      .exec((err, data) => {
-        if (err) return next(err);
-        res.locals.gameStatus = data.gameStatus;
-        next();
-      });
-  },
-
   // create new session and assigne data to it
   function (req, res, next) {
     // reset session all session data is lost -> logged out from all games
-    req.session.regenerate(function (err) {
+    req.session.regenerate(async function (err) {
       if (err) return next(err);
+
       // assigne data to session
       req.session.game_id = req.params.game_id;
       req.session.playerName = req.body.playerName;
       req.session.playerColor = req.body.playerColor;
+      req.session.joinTime = new Date();
       req.session.playerPoints = 0;
       req.session.playerAnswer = null;
       req.session.answerLetter = null;
       req.session.playerVote = null;
       // only place player in round if game is at collectingAnswers phase
-      if (res.locals.gameStatus === "collectingAnswers") {
-        req.session.isInRound = true;
-      } else {
-        req.session.isInRound = false;
+      try {
+        // fetch gameStatus and assigne to locals
+        const data = await Game.findById(req.params.game_id)
+          .select("gameStatus")
+          .exec();
+        req.session.isInRound = data.gameStatus === "collectingAnswers";
+      } catch (err) {
+        return next(err);
       }
+
       // save data immediately back to db
       req.session.save(function (err) {
         if (err) return next(err);
