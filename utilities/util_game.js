@@ -4,202 +4,258 @@ const async = require("async");
 const Game = require("../models/game");
 const Session = require("../models/session");
 
-// updates game with id stored at res.locals.gameId
-// and sets res.locals.continueURL
-exports.updateGame = async function (req, res, next) {
-  if (!res.locals.gameId) return next();
-  try {
-    // fetch gameStatus and id
-    const game = await Game.findById(res.locals.gameId)
-      .select("gameStatus")
-      .exec();
+/**
+ * updates a specific game
+ * @param {string | ObjectId | object} game
+ * string/ObjectId: fetch game document with this id from database
+ * object: alternatively use this game document fetched earlier from database
+ * @param {boolean} needRefetch flag indicating if refetch needed
+ * true: provide at {@link game} game id
+ * false: provide at {@link game} game document
+ * @return {Promise<void | string>} continueURL for later redirection (optional)
+ */
+exports.updateGame = async function (game, needRefetch) {
+  // check for potential refetch of game object
+  if (needRefetch) {
+    // game id provided, so refetch new game data and override it
+    game = await Game.findById(game).select("-password").exec();
     if (!game) {
       // No such game found
-      const error = new Error("Game not found");
+      const error = new Error("Game not found!");
       error.status = 404;
       throw error;
     }
-    // switch over different states
-    res.locals.continueURL = req.originalUrl;
-    let sess;
-    switch (game.gameStatus) {
-      case "collectingAnswers":
-        // check if update needed
-        sess = await async.parallel({
-          inRound: (cb) => {
-            Session.countPlayersInRoundByGame_id(game.id).exec(cb);
-          },
-          answered: (cb) => {
-            Session.countProvPlayerAnswerByGame_id(game.id).exec(cb);
-          },
-        });
-        if (sess.inRound === 0 || sess.inRound !== sess.answered) break;
-        // do update
-        await async.parallel([
-          (cb) => {
-            // update gameStatus
-            Game.findByIdAndUpdate(game.id, { gameStatus: "voting" }, {}, cb);
-          },
-          async (cb) => {
-            // generate random ordered alphabet array, max 26 letters, so max 26 Players per game
-            const unshuffledLetArr = [...Array(sess.inRound)].map((_, i) =>
-              String.fromCharCode(i + 65)
-            );
-            // shuffle the unshuffledLetArr
-            const shuffledLetArr = unshuffledLetArr
-              .map((value) => ({ value, sort: Math.random() }))
-              .sort((a, b) => a.sort - b.sort)
-              .map(({ value }) => value);
-            let letInd = 0;
-            // fetch answers form session an assigne letters
-            const cursor = Session.findAnswersByGame_id(game.id).cursor();
-            for (
-              let doc = await cursor.next();
-              doc != null;
-              doc = await cursor.next()
-            ) {
-              doc.session.answerLetter = shuffledLetArr[letInd];
-              await doc.save();
-              letInd++;
-            }
-          },
-        ]);
-        // set continueURL
-        res.locals.continueURL = `/play/${game.id}/vote`;
-        break;
-
-      case "voting":
-        // check if update needed
-        sess = await async.parallel({
-          inRound: (cb) => {
-            Session.countPlayersInRoundByGame_id(game.id).exec(cb);
-          },
-          voted: (cb) => {
-            Session.countProvPlayerVoteByGame_id(game.id).exec(cb);
-          },
-        });
-        if (sess.inRound === 0 || sess.inRound !== sess.voted) break;
-        // do update
-        // update gameStatus
-        await Game.findByIdAndUpdate(
-          game.id,
-          { gameStatus: "showVotingResults" },
-          {}
-        ).exec();
-        // set continueURL
-        res.locals.continueURL = `/play/${game.id}/results`;
-        break;
-
-      case "showVotingResults":
-        // check if update needed
-        sess = await async.parallel({
-          total: (cb) => {
-            Session.countTotalPlayersByGame_id(game.id).exec(cb);
-          },
-          readyForNext: (cb) => {
-            Session.countReadyForNextRoundByGame_id(game.id).exec(cb);
-          },
-        });
-        if (sess.total === 0 || sess.total !== sess.readyForNext) {
-          res.locals.continueURL = `/play/${game.id}`;
-          break;
-        }
-        // do update
-        await async.parallel([
-          (cb) => {
-            // update gameStatus
-            Game.findByIdAndUpdate(
-              game.id,
-              { gameStatus: "collectingAnswers" },
-              {},
-              cb
-            );
-          },
-          (cb) => {
-            // reset all sessions for this game for a new round
-            Session.resetForNewRoundByGame_id(game.id).exec(cb);
-          },
-        ]);
-        // set continueURL
-        res.locals.continueURL = `/play/${game.id}/answer`;
-        break;
-
-      default:
-        throw new Error(
-          `update game ${res.locals.gameId} failed: no valid gameStatus found!`
-        );
-        break;
-    }
-  } catch (err) {
-    return next(err);
   }
-  return next();
-};
 
-exports.fetchAndProcessGameResults = function (gameId) {
-  return new Promise((resolve, reject) => {
-    Session.findAnswersLettersCreatorsVotesByGame_id(gameId).exec(
-      (err, data) => {
-        if (err) reject(err);
-        const map = new Map();
-        // assigne keyValue pairs to map
-        for (ele of data) {
-          if (!ele.letter) continue;
-          map.set(ele.letter, {
-            creator: ele.creator,
-            letter: ele.letter,
-            answer: ele.answer,
-            voters: [],
-          });
-        }
-        // count votes
-        for (ele of data) {
-          if (!ele.vote) continue;
-          map.get(ele.vote)?.voters.push(ele.creator);
-        }
-        // return array sorted by letter
-        resolve(
-          [...map.values()].sort((a, b) => {
-            return a.letter == b.letter ? 0 : a.letter > b.letter ? 1 : -1;
-          })
-        );
-      }
-    );
-  });
+  // do different actions based on current gameStatus
+  switch (game.gameStatus) {
+    case "collectingAnswers":
+      return updateGame_collectingAnswers(game);
+    case "voting":
+      return updateGame_voting(game);
+    case "showVotingResults":
+      return updateGame_showVotingResults(game);
+    default:
+      throw new Error(
+        `update game ${game._id} failed: no valid gameStatus found!`
+      );
+  }
 };
 
 /**
+ * updateGame handler at collectingAnswers phase
+ * @param {object} game game document fetched from database
+ * @return {Promise<void | string>} continueURL for later redirection (optional)
+ */
+async function updateGame_collectingAnswers(game) {
+  // check if current mod still present, if not (-> mod lost), reset game to restart a new round
+  const modFound = await Session.findValidModName(
+    game.currModerator.sessionPlayerId,
+    game._id
+  ).exec();
+  if (!modFound) {
+    await initNewRound(game, false);
+    return;
+  }
+
+  // check if update needed
+  const sess = await async.parallel({
+    inRound: (cb) => {
+      Session.countPlayersInRoundByGame_id(game._id).exec(cb);
+    },
+    answered: (cb) => {
+      Session.countProvPlayerAnswerByGame_id(game._id).exec(cb);
+    },
+  });
+
+  // early return if no update needed
+  if (sess.inRound === 0 || sess.inRound !== sess.answered) return;
+
+  // do update
+  await async.parallel([
+    (cb) => {
+      // update gameStatus
+      Game.findByIdAndUpdate(game._id, { gameStatus: "voting" }, {}, cb);
+    },
+    async (cb) => {
+      // generate random ordered alphabet array, max 26 letters, so max 26 Players per game
+      const unshuffledLetArr = [...Array(sess.inRound)].map((_, i) =>
+        String.fromCharCode(i + 65)
+      );
+      // shuffle the unshuffledLetArr
+      const shuffledLetArr = unshuffledLetArr
+        .map((value) => ({ value, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({ value }) => value);
+      let letInd = 0;
+      // fetch answers form session an assigne letters
+      const cursor = Session.findAnswersByGame_id(game._id).cursor();
+      for (
+        let doc = await cursor.next();
+        doc != null;
+        doc = await cursor.next()
+      ) {
+        doc.session.answerLetter = shuffledLetArr[letInd];
+        await doc.save();
+        letInd++;
+      }
+    },
+  ]);
+
+  // return continueURL
+  return `/play/${game._id}/vote`;
+}
+
+/**
+ * updateGame handler at voting phase
+ * @param {object} game game document fetched from database
+ * @return {Promise<void | string>} continueURL for later redirection (optional)
+ */
+async function updateGame_voting(game) {
+  // check if update needed
+  const sess = await async.parallel({
+    inRound: (cb) => {
+      Session.countPlayersInRoundByGame_id(game._id).exec(cb);
+    },
+    voted: (cb) => {
+      Session.countProvPlayerVoteByGame_id(game._id).exec(cb);
+    },
+  });
+
+  // early return if no update needed
+  if (sess.inRound === 0 || sess.inRound !== sess.voted) return;
+
+  // do update
+  await Game.findByIdAndUpdate(
+    game._id,
+    { gameStatus: "showVotingResults" },
+    {}
+  ).exec();
+
+  // return continueURL
+  return `/play/${game._id}/results`;
+}
+
+/**
+ * updateGame handler at showVotingResults phase
+ * @param {object} game game document fetched from database
+ * @return {Promise<void | string>} continueURL for later redirection (optional)
+ */
+async function updateGame_showVotingResults(game) {
+  // check if update needed
+  const sess = await async.parallel({
+    total: (cb) => {
+      Session.countTotalPlayersByGame_id(game._id).exec(cb);
+    },
+    readyForNext: (cb) => {
+      Session.countReadyForNextRoundByGame_id(game._id).exec(cb);
+    },
+  });
+
+  // early return if no update needed
+  if (sess.total === 0 || sess.total !== sess.readyForNext)
+    return `/play/${game._id}`;
+
+  // do update
+  await initNewRound(game, true);
+
+  // return continueURL
+  return `/play/${game._id}/answer`;
+}
+
+/**
  * updates moderator of a specific game
- * @param {string} game_id specific game
+ * @param {string | ObjectId} gameId specific game
  * @param {object} currModerator must include the following properties
- * @property {string} currModerator.sessionPlayerId
+ * @property {string | null} currModerator.sessionPlayerId if null then game has currently no mod
  * @property {date} currModerator.joinTime
  * @param {boolean} selNext true: take next mod, false: same mod as before if present
- * @return {Promise<boolean>} boolean indicating if mod was updated
+ * @return {Promise<boolean>} boolean indicating if mod was changed
  */
-exports.updateModerator = function (game_id, currModerator, selNext) {
+function updateModerator(gameId, currModerator, selNext) {
   return (
-    Session.getUpdatedModerator(game_id, currModerator.joinTime, selNext)
+    Session.getUpdatedModerator(String(gameId), currModerator.joinTime, selNext)
       .exec()
       .then((data) => {
-        if (!data.length) {
+        if (data.length === 0) {
           // no players found
-          return;
-        } else if (data[0].sessionPlayerId === currModerator.sessionPlayerId) {
-          // new found moderator is the same as before
-          return;
-        } else {
-          // update game with new moderator data
-          return Game.findByIdAndUpdate(
-            game_id,
-            {
-              currModerator: data[0],
-            },
-            { new: true, select: "name currModerator" }
-          ).exec();
+          // return a moderator object where all properties are set to null except keep joinTime
+          return {
+            sessionPlayerId: null,
+            joinTime: currModerator.joinTime,
+          };
         }
+        // return (new) found moderator object
+        return data[0];
       })
-      // return true if moderator was updated
-      .then((data) => !!data)
+      // update game with new moderator data
+      .then((toUpdateModerator) =>
+        Game.findByIdAndUpdate(
+          gameId,
+          {
+            currModerator: toUpdateModerator,
+          },
+          { new: true, select: "currModerator" }
+        ).exec()
+      )
+      // return true if moderator was changed
+      .then(
+        (data) =>
+          data.currModerator.sessionPlayerId !== currModerator.sessionPlayerId
+      )
   );
+}
+
+/**
+ * inits a new round of a specific game
+ * @param {object} game game document fetched from database
+ * @param {boolean} selNextMod true: take next mod, false: same mod as before if present
+ * @return {Promise}
+ */
+function initNewRound(game, selNextMod) {
+  return Promise.all([
+    // update gameStatus
+    Game.findByIdAndUpdate(
+      game._id,
+      { gameStatus: "collectingAnswers" },
+      {}
+    ).exec(),
+    // reset all sessions for this game for a new round
+    Session.resetForNewRoundByGame_id(game._id).exec(),
+  ]).then(() =>
+    // assign next new moderator
+    updateModerator(game._id, game.currModerator, selNextMod)
+  );
+}
+
+/**
+ * fetch and process game results used in showVotingResults phase
+ * @param {string} gameId game id
+ * @return {Promise<Array<object>}
+ */
+exports.fetchAndProcessGameResults = function (gameId) {
+  return Session.findAnswersLettersCreatorsVotesByGame_id(gameId)
+    .exec()
+    .then((data) => {
+      const map = new Map();
+      // assigne keyValue pairs to map
+      for (ele of data) {
+        if (!ele.letter) continue;
+        map.set(ele.letter, {
+          creator: ele.creator,
+          letter: ele.letter,
+          answer: ele.answer,
+          voters: [],
+        });
+      }
+      // count votes
+      for (ele of data) {
+        if (!ele.vote) continue;
+        map.get(ele.vote)?.voters.push(ele.creator);
+      }
+      // return array sorted by letter
+      return [...map.values()].sort((a, b) => {
+        return a.letter == b.letter ? 0 : a.letter > b.letter ? 1 : -1;
+      });
+    });
 };

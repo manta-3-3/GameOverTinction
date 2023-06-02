@@ -88,28 +88,6 @@ exports.countProvPlayerVoteByGame_id = function (game_id) {
     .ne(null);
 };
 
-// query for specific game_id, where answerLetter, playerAnswer and playerName is not null,
-// returns array sorted by answerLetter ascending of doc containing only answerLetter, playerAnswer and playerName from session
-exports.findAnswersLettersCreatorsByGame_id = function (game_id) {
-  return sessionModel
-    .find({
-      "session.game_id": game_id,
-    })
-    .where("session.answerLetter")
-    .ne(null)
-    .where("session.playerAnswer")
-    .ne(null)
-    .where("session.playerName")
-    .ne(null)
-    .sort({ "session.answerLetter": 1 })
-    .select({
-      _id: 0,
-      letter: "$session.answerLetter",
-      answer: "$session.playerAnswer",
-      creator: "$session.playerName",
-    });
-};
-
 // query for specific game_id, where playerName is not null and additionally
 // (answerLetter and playerAnswer) or playerVote is not null,
 // returns array of doc containing only answerLetter, playerAnswer, playerName and playerVote from session
@@ -163,16 +141,6 @@ exports.resetForNewRoundByGame_id = function (game_id) {
   );
 };
 
-// query for specific game_id,
-// returns array of doc containing only session data without cookie
-exports.findSessionsByGame_id = function (game_id) {
-  return sessionModel
-    .find({
-      "session.game_id": game_id,
-    })
-    .select("-_id -session.cookie -expires");
-};
-
 /**
  * aggregation pipeline to get updated moderator of a specific game, where player isInRound
  * query retunrs the next player which should get moderator based on the givenDate of the current one
@@ -180,7 +148,7 @@ exports.findSessionsByGame_id = function (game_id) {
  * @param {string} game_id specific game
  * @param {date} givenDate date point to determine (next) mod
  * @param {boolean} selNext true: take next mod, false: same mod as before if present
- * @return {Aggregate} aggregation pipeline
+ * @return {mongoose.Aggregate} aggregation pipeline
  */
 exports.getUpdatedModerator = function (game_id, givenDate, selNext) {
   return sessionModel.aggregate([
@@ -233,9 +201,27 @@ exports.getUpdatedModerator = function (game_id, givenDate, selNext) {
       $project: {
         _id: 0,
         sessionPlayerId: "$_id",
-        playerName: "$session.playerName",
         joinTime: "$session.joinTime",
       },
     },
   ]);
+};
+
+/**
+ * finds the playerName of the mod from a specific game, if still present
+ * @param {string | ObjectId} session_id sessionId of this player
+ * @param {string | ObjectId} game_id specific game
+ * @return {mongoose.Query} query
+ */
+exports.findValidModName = function (session_id, game_id) {
+  return sessionModel
+    .findById(session_id)
+    .where({
+      "session.game_id": game_id,
+    })
+    .where("session.isInRound")
+    .equals(true)
+    .select({
+      name: "$session.playerName",
+    });
 };

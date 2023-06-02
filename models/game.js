@@ -20,7 +20,6 @@ const gameSchema = new mongoose.Schema({
   },
   currModerator: {
     sessionPlayerId: { type: String, required: true, default: null },
-    playerName: { type: String, required: true, default: null },
     joinTime: { type: Date, required: true, default: null },
   },
 });

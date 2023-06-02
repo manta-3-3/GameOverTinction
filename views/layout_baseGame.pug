@@ -24,6 +24,8 @@ block content
           +keyValue("Ingame:", sess_game.totalPlayers + "/" + db_game.maxPlayers + " Players")
         div(class="col-auto p-2")
           +keyValue("Status:", db_game.gameStatus)
+        div(class="col-auto p-2")
+          +keyValue("Moderator:", (sess_game.modName ? sess_game.modName : "No Moderator"))
       div(class="row bg-opacity-50")
         div(class="col")
           hr(class="m-0 border-secondary opacity-75")

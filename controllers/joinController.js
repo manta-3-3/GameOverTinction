@@ -5,6 +5,9 @@ const async = require("async");
 const Game = require("../models/game");
 const Session = require("../models/session");
 
+// require game utilities
+const gameUtil = require("../utilities/util_game");
+
 // display list of available games
 exports.join_game_list = function (req, res, next) {
   Game.find({})
@@ -127,20 +130,31 @@ exports.post_join_game = [
       req.session.playerAnswer = null;
       req.session.answerLetter = null;
       req.session.playerVote = null;
-      // only place player in round if game is at collectingAnswers phase
+
       try {
-        // fetch gameStatus and assigne to locals
-        const data = await Game.findById(req.params.game_id)
-          .select("gameStatus")
+        // fetch game and assign to locals
+        res.locals.db_game = await Game.findById(req.params.game_id)
+          .select("-password")
           .exec();
-        req.session.isInRound = data.gameStatus === "collectingAnswers";
       } catch (err) {
         return next(err);
       }
 
+      // only place player in round if game is at collectingAnswers phase
+      req.session.isInRound =
+        res.locals.db_game.gameStatus === "collectingAnswers";
+
       // save data immediately back to db
-      req.session.save(function (err) {
+      req.session.save(async function (err) {
         if (err) return next(err);
+
+        try {
+          // update game
+          await gameUtil.updateGame(res.locals.db_game, false);
+        } catch (err) {
+          return next(err);
+        }
+
         // redirect to the play route of this game
         res.redirect(`/play/${req.params.game_id}`);
       });
