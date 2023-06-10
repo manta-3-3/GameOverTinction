@@ -49,7 +49,7 @@ exports.updateGame = async function (game, needRefetch) {
  */
 async function updateGame_collectingAnswers(game) {
   // check if current mod still present, if not (-> mod lost), reset game to restart a new round
-  const modFound = await Session.findValidModName(
+  const modFound = await Session.findValidModInfo(
     game.currModerator.sessionPlayerId,
     game._id
   ).exec();
@@ -123,14 +123,20 @@ async function updateGame_voting(game) {
   });
 
   // early return if no update needed
-  if (sess.inRound === 0 || sess.inRound !== sess.voted) return;
+  // moderator hasn't to vote, therefore sess.inRound-1
+  if (sess.inRound === 0 || sess.inRound - 1 > sess.voted) return;
 
   // do update
-  await Game.findByIdAndUpdate(
-    game._id,
-    { gameStatus: "showVotingResults" },
-    {}
-  ).exec();
+  await Promise.all([
+    // update gameStatus
+    Game.findByIdAndUpdate(
+      game._id,
+      { gameStatus: "showVotingResults" },
+      {}
+    ).exec(),
+    // do score evaluation
+    assignPoints(game),
+  ]);
 
   // return continueURL
   return `/play/${game._id}/results`;
@@ -230,32 +236,96 @@ function initNewRound(game, selNextMod) {
 
 /**
  * fetch and process game results used in showVotingResults phase
- * @param {string} gameId game id
- * @return {Promise<Array<object>}
+ * @param {object} game game document fetched from database
+ * @return {Promise<object>} containing resArray and correctAnswerLetter
  */
-exports.fetchAndProcessGameResults = function (gameId) {
-  return Session.findAnswersLettersCreatorsVotesByGame_id(gameId)
-    .exec()
-    .then((data) => {
-      const map = new Map();
-      // assigne keyValue pairs to map
-      for (ele of data) {
-        if (!ele.letter) continue;
-        map.set(ele.letter, {
-          creator: ele.creator,
-          letter: ele.letter,
-          answer: ele.answer,
-          voters: [],
-        });
-      }
-      // count votes
-      for (ele of data) {
-        if (!ele.vote) continue;
-        map.get(ele.vote)?.voters.push(ele.creator);
-      }
-      // return array sorted by letter
-      return [...map.values()].sort((a, b) => {
-        return a.letter == b.letter ? 0 : a.letter > b.letter ? 1 : -1;
-      });
+exports.fetchAndProcessGameResults = async function (game) {
+  // fetch data
+  const data = await Session.findAnswersLettersCreatorsVotesByGame_id_selected(
+    game._id
+  )
+    .lean()
+    .exec();
+  // init resMap
+  const resMap = new Map();
+  // assigne keyValue pairs to resMap
+  for (ele of data) {
+    if (!ele.letter) continue;
+    resMap.set(ele.letter, {
+      creator: ele.creator,
+      letter: ele.letter,
+      answer: ele.answer,
+      voters: [],
     });
+  }
+  // init correctAnswerLetter
+  let correctAnswerLetter;
+  // count votes and find correctAnswerLetter
+  for (ele of data) {
+    if (
+      !correctAnswerLetter &&
+      ele._id === game.currModerator.sessionPlayerId
+    ) {
+      correctAnswerLetter = ele.letter;
+    }
+    if (!ele.vote) continue;
+    resMap.get(ele.vote)?.voters.push(ele.creator);
+  }
+  // sort resArray by letter
+  const resArray = [...resMap.values()].sort((a, b) => {
+    return a.letter == b.letter ? 0 : a.letter > b.letter ? 1 : -1;
+  });
+  return {
+    correctAnswerLetter: correctAnswerLetter,
+    resArray: resArray,
+  };
 };
+
+/**
+ * for a specifig game assign points to players at round end
+ * @param {object} game game document fetched from database
+ * @return {Promise}
+ */
+async function assignPoints(game) {
+  // fetch data
+  const data = await Session.findAnswersLettersCreatorsVotesByGame_id_full(
+    game._id
+  ).exec();
+  // init letterMap and docIdMap
+  const letterMap = new Map();
+  const docIdMap = new Map();
+  // assigne keyValue pairs to letterMap and docIdMap
+  for (doc of data) {
+    docIdMap.set(doc._id, doc);
+    if (!doc.session.answerLetter) continue;
+    letterMap.set(doc.session.answerLetter, {
+      creatorId: doc._id,
+      countVotes: 0,
+    });
+  }
+  // count votes
+  for (voter of data) {
+    const letterEntry = letterMap.get(voter.session.playerVote);
+    // check if vote exists and creator isn't also voter
+    if (!letterEntry || letterEntry.creatorId === voter._id) continue;
+    // increase countVotes
+    letterEntry.countVotes++;
+    // check if voter gets points for correct answer
+    if (letterEntry.creatorId === game.currModerator.sessionPlayerId) {
+      // give voter 2 points for correct answer
+      voter.session.roundPoints.correctAnswer = 2;
+      voter.session.playerPoints += 2;
+    }
+    // else creator gets points for others vote
+    else {
+      const creator = docIdMap.get(letterEntry.creatorId);
+      // give creator +3 points for others vote
+      creator.session.roundPoints.othersWrongVote += 3;
+      creator.session.playerPoints += 3;
+    }
+  }
+  // update docs back to db
+  for (doc of data) {
+    await doc.save();
+  }
+}

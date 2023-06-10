@@ -41,6 +41,12 @@ block content
               p(class="m-0 fs-6 fw-semibold badge text-bg-secondary text-start border border-1 border-white border-opacity-50") Color:
             div(class="col-auto")
               div(class="border border-dark border-2", style=("width:2em;height:2em;border-radius:50%;background:"+sess_user.playerColor+";"))
+    section(id="game_modInfo", class="my-3")
+      if (isMod)
+        p(class="alert alert-success text-center", role="alert") 
+          span You are &#32;
+          span(class="fw-bold text-nowrap text-decoration-underline") currently Moderator
+          span &#32; in this round!
     section(id="game_title", class="my-3")
       h1(class="display-1")= title
     hr

@@ -38,8 +38,8 @@ exports.fetchForGameInfoHeader = function (req, res, next) {
           Session.countTotalPlayersByGame_id(res.locals.db_game._id).exec(cb);
         },
         // fetch playerName of current mod from sessions
-        mod: (cb) => {
-          Session.findValidModName(
+        modInfo: (cb) => {
+          Session.findValidModInfo(
             res.locals.db_game.currModerator.sessionPlayerId,
             res.locals.db_game._id
           ).exec(cb);
@@ -47,14 +47,17 @@ exports.fetchForGameInfoHeader = function (req, res, next) {
       })
     )
     .then((results) => {
-      // assign countTotalPlayers and modName to locals
+      // assign countTotalPlayers and mod Name to locals
       res.locals.sess_game = {
         totalPlayers: results.countTotalPlayers,
-        modName: results.mod?.name,
+        modName: results.modInfo?.name,
       };
       // assign user session data to locals
       res.locals.sess_user = req.session;
-      res.locals.sess_user.sessionId = req.sessionID;
+      // determin and assign isMod directly to locals
+      res.locals.isMod =
+        req.sessionID === res.locals.db_game.currModerator.sessionPlayerId &&
+        req.session.isInRound;
       // go on
       next();
     })
@@ -113,6 +116,36 @@ exports.post_play_game_answer = [
     .withMessage("playerAnswer is empty!")
     .isLength({ max: 250 })
     .withMessage("playerAnswer cannot be longer than 250 characters!"),
+  async function (req, res, next) {
+    try {
+      await body("isModAnswerType")
+        .exists()
+        .withMessage("No userhidden isModAnswerType field sent!")
+        .bail()
+        .isBoolean({ loose: false })
+        .withMessage("isModAnswerType isn't a Boolean!")
+        .bail()
+        .toBoolean(true)
+        // check if isModAnswerType match role of player
+        .custom((value) => {
+          if (value !== res.locals.isMod) {
+            const customMsg = res.locals.isMod
+              ? "the moderator"
+              : "a normal player";
+            throw new Error(
+              "Wrong answer type submitted, be aware you are now " +
+                customMsg +
+                "!"
+            );
+          }
+          return true;
+        })
+        .run(req);
+    } catch (err) {
+      return next(err);
+    }
+    return next();
+  },
 
   function (req, res, next) {
     // extract the validation errors from a request
@@ -122,6 +155,7 @@ exports.post_play_game_answer = [
       return res.render("play_game_answer", {
         title: "Submit your answer",
         valErrors: valErrors.array(),
+        localPlayerAnswer: req.body.playerAnswer,
       });
     }
     // data from form is valid -> continue
@@ -158,6 +192,18 @@ exports.get_play_game_vote = function (req, res, next) {
 };
 
 exports.post_play_game_vote = [
+  // check if player is mod, if so take other actions
+  function (req, res, next) {
+    if (!res.locals.isMod) return next();
+    // only update game
+    gameUtil
+      .updateGame(res.locals.db_game, false)
+      .then((continueURL) =>
+        res.redirect(continueURL ? continueURL : req.originalUrl)
+      )
+      .catch((err) => next(err));
+  },
+
   // validate and sanitize fields
   body("playerVote")
     .exists()
@@ -215,7 +261,7 @@ exports.post_play_game_vote = [
 
 exports.get_play_game_results = function (req, res, next) {
   gameUtil
-    .fetchAndProcessGameResults(res.locals.db_game._id)
+    .fetchAndProcessGameResults(res.locals.db_game)
     .then((data) => {
       return res.render("play_game_results", {
         title: "Show Results",

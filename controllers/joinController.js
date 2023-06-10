@@ -127,6 +127,10 @@ exports.post_join_game = [
       req.session.playerColor = req.body.playerColor;
       req.session.joinTime = new Date();
       req.session.playerPoints = 0;
+      req.session.roundPoints = {
+        correctAnswer: 0,
+        othersWrongVote: 0,
+      };
       req.session.playerAnswer = null;
       req.session.answerLetter = null;
       req.session.playerVote = null;

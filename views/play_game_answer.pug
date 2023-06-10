@@ -1,7 +1,10 @@
 extends layout_baseGame
 
 block game_content
-  p(class="text-white my-3") Type your answer in the textfield below
+  // Instruction Text
+  p(class="text-white my-3") Type &#32;
+    span(class="fw-bold")= (isMod ? "the correct answer from the card" : "your answer")  
+    span &#32; in the textfield below
   // Error Messages
   section(class="my-3")
     +formError("Answer",valErrors)
@@ -17,5 +20,7 @@ block game_content
           rows=8, maxlength=250, required)= (sess_user.playerAnswer ? sess_user.playerAnswer : localPlayerAnswer)
           div(id="playerAnswerHelp", class="form-text") max. 250 characters allowed
         +un-saved("answer", !!sess_user.playerAnswer)
+      // Userhidden fields
+      input(type="hidden" id="isModAnswerType" name="isModAnswerType" value=""+isMod)
       // Submit Button
       button(type="submit", class="btn btn-secondary w-100") Submit
