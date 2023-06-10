@@ -10,48 +10,58 @@ const gameUtil = require("../utilities/util_game");
 
 // middleware to check if this user got access to this game via session-cookie
 exports.authForGame_id = function (req, res, next) {
-  // check access by session-cookie
-  if (req.session.game_id !== req.params.game_id) {
-    return res.redirect(`/join/${req.params.game_id}`);
-  } else {
-    // access permitted go on
-    next();
-  }
+  if (req.session.game_id === req.params.game_id) return next();
+  // else access denied redirect to join page
+  return res.redirect(`/join/${req.params.game_id}`);
 };
 
 // midleware fetch game-info form database for GameInfoHeader
 exports.fetchForGameInfoHeader = function (req, res, next) {
-  async.parallel(
-    {
-      // fetch game for this game_id from database
-      db_game(callback) {
-        Game.findById(req.params.game_id).select("-password").exec(callback);
-      },
-      // fetch current countTotalPlayers for this game_id from sessions
-      countTotalPlayers(callback) {
-        Session.countTotalPlayersByGame_id(req.params.game_id).exec(callback);
-      },
-    },
-    function (err, results) {
-      if (err) return next(err);
-      if (results.db_game == null) {
+  // fetch game for this game_id from database
+  Game.findById(req.params.game_id)
+    .select("-password")
+    .exec()
+    .then((db_game) => {
+      if (db_game === null) {
         // No such game found
         const err = new Error("Game not found");
         err.status = 404;
-        return next(err);
+        throw err;
       }
       // assign db_game to locals
-      res.locals.db_game = results.db_game;
-      // assign countTotalPlayers and countPlayersInRound to locals
+      res.locals.db_game = db_game;
+    })
+    .then(() =>
+      async.parallel({
+        // fetch current countTotalPlayers for this game_id from sessions
+        countTotalPlayers: (cb) => {
+          Session.countTotalPlayersByGame_id(res.locals.db_game._id).exec(cb);
+        },
+        // fetch playerName of current mod from sessions
+        modInfo: (cb) => {
+          Session.findValidModInfo(
+            res.locals.db_game.currModerator.sessionPlayerId,
+            res.locals.db_game._id
+          ).exec(cb);
+        },
+      })
+    )
+    .then((results) => {
+      // assign countTotalPlayers and mod Name to locals
       res.locals.sess_game = {
         totalPlayers: results.countTotalPlayers,
+        modName: results.modInfo?.name,
       };
       // assign user session data to locals
       res.locals.sess_user = req.session;
+      // determin and assign isMod directly to locals
+      res.locals.isMod =
+        req.sessionID === res.locals.db_game.currModerator.sessionPlayerId &&
+        req.session.isInRound;
       // go on
       next();
-    }
-  );
+    })
+    .catch((err) => next(err));
 };
 
 // middleware to check if player is in current round
@@ -106,6 +116,37 @@ exports.post_play_game_answer = [
     .withMessage("playerAnswer is empty!")
     .isLength({ max: 250 })
     .withMessage("playerAnswer cannot be longer than 250 characters!"),
+  async function (req, res, next) {
+    try {
+      await body("isModAnswerType")
+        .exists()
+        .withMessage("No userhidden isModAnswerType field sent!")
+        .bail()
+        .isBoolean({ loose: false })
+        .withMessage("isModAnswerType isn't a Boolean!")
+        .bail()
+        .toBoolean(true)
+        // check if isModAnswerType match role of player
+        .custom((value) => {
+          if (value !== res.locals.isMod) {
+            const customMsg = res.locals.isMod
+              ? "the moderator"
+              : "a normal player";
+            throw new Error(
+              "Wrong answer type submitted, be aware you are now " +
+                customMsg +
+                "!"
+            );
+          }
+          return true;
+        })
+        .run(req);
+    } catch (err) {
+      return next(err);
+    }
+    return next();
+  },
+
   function (req, res, next) {
     // extract the validation errors from a request
     const valErrors = validationResult(req);
@@ -114,6 +155,7 @@ exports.post_play_game_answer = [
       return res.render("play_game_answer", {
         title: "Submit your answer",
         valErrors: valErrors.array(),
+        localPlayerAnswer: req.body.playerAnswer,
       });
     }
     // data from form is valid -> continue
@@ -126,18 +168,14 @@ exports.post_play_game_answer = [
     });
   },
 
-  // set gameId at locals for further gameUpdate
+  // update game
   function (req, res, next) {
-    res.locals.gameId = res.locals.db_game._id;
-    return next();
-  },
-
-  // updateGame
-  gameUtil.updateGame,
-
-  // redirect
-  function (req, res) {
-    return res.redirect(res.locals.continueURL);
+    gameUtil
+      .updateGame(res.locals.db_game, false)
+      .then((continueURL) =>
+        res.redirect(continueURL ? continueURL : req.originalUrl)
+      )
+      .catch((err) => next(err));
   },
 ];
 
@@ -154,6 +192,18 @@ exports.get_play_game_vote = function (req, res, next) {
 };
 
 exports.post_play_game_vote = [
+  // check if player is mod, if so take other actions
+  function (req, res, next) {
+    if (!res.locals.isMod) return next();
+    // only update game
+    gameUtil
+      .updateGame(res.locals.db_game, false)
+      .then((continueURL) =>
+        res.redirect(continueURL ? continueURL : req.originalUrl)
+      )
+      .catch((err) => next(err));
+  },
+
   // validate and sanitize fields
   body("playerVote")
     .exists()
@@ -198,24 +248,20 @@ exports.post_play_game_vote = [
     });
   },
 
-  // set gameId at locals for further gameUpdate
+  // update game
   function (req, res, next) {
-    res.locals.gameId = res.locals.db_game._id;
-    return next();
-  },
-
-  // updateGame
-  gameUtil.updateGame,
-
-  // redirect
-  function (req, res) {
-    return res.redirect(res.locals.continueURL);
+    gameUtil
+      .updateGame(res.locals.db_game, false)
+      .then((continueURL) =>
+        res.redirect(continueURL ? continueURL : req.originalUrl)
+      )
+      .catch((err) => next(err));
   },
 ];
 
 exports.get_play_game_results = function (req, res, next) {
   gameUtil
-    .fetchAndProcessGameResults(res.locals.db_game._id)
+    .fetchAndProcessGameResults(res.locals.db_game)
     .then((data) => {
       return res.render("play_game_results", {
         title: "Show Results",
@@ -237,17 +283,13 @@ exports.post_play_game_results = [
     });
   },
 
-  // set gameId at locals for further gameUpdate
+  // update game
   function (req, res, next) {
-    res.locals.gameId = res.locals.db_game._id;
-    return next();
-  },
-
-  // updateGame
-  gameUtil.updateGame,
-
-  // redirect
-  function (req, res) {
-    return res.redirect(res.locals.continueURL);
+    gameUtil
+      .updateGame(res.locals.db_game, false)
+      .then((continueURL) =>
+        res.redirect(continueURL ? continueURL : req.originalUrl)
+      )
+      .catch((err) => next(err));
   },
 ];

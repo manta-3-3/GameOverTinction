@@ -1,7 +1,10 @@
 extends layout_baseGame
 
 block game_content
-  p(class="fs-5 text-white my-3") Type your answer in the textfield below
+  // Instruction Text
+  p(class="text-white my-3") Type &#32;
+    span(class="fw-bold")= (isMod ? "the correct answer from the card" : "your answer")  
+    span &#32; in the textfield below
   // Error Messages
   section(class="my-3")
     +formError("Answer",valErrors)
@@ -10,12 +13,14 @@ block game_content
     form(method='POST', action='')
       // Answer Text-Field
       div(class="mb-3")
-        label(for="playerAnswer", class="form-label fw-bolder fs-6") Your Answer:
-        textarea(id="playerAnswer", name="playerAnswer", class="form-control", 
-        class=sess_user.playerAnswer ? "is-valid" : "is-invalid", 
-        rows=8, placeholder="Enter your answer here", 
-        aria-describedby="playerAnswerHelp", maxlength=250, 
-        required)= (sess_user.playerAnswer ? sess_user.playerAnswer : localPlayerAnswer)
-        div(id="playerAnswerHelp", class="form-text") max. 250 characters allowed
+        div(class="p-2 border border-2 border-opacity-50", class=sess_user.playerAnswer ? "border-success" : "border-danger")
+          label(for="playerAnswer", class="form-label fw-bolder") Your Answer:
+          textarea(id="playerAnswer", name="playerAnswer", class="form-control",  
+          placeholder="Enter your answer here", aria-describedby="playerAnswerHelp", 
+          rows=8, maxlength=250, required)= (sess_user.playerAnswer ? sess_user.playerAnswer : localPlayerAnswer)
+          div(id="playerAnswerHelp", class="form-text") max. 250 characters allowed
+        +un-saved("answer", !!sess_user.playerAnswer)
+      // Userhidden fields
+      input(type="hidden" id="isModAnswerType" name="isModAnswerType" value=""+isMod)
       // Submit Button
       button(type="submit", class="btn btn-secondary w-100") Submit

@@ -10,11 +10,13 @@ const helmet = require("helmet");
 const compression = require("compression");
 const expressSession = require("express-session");
 const mongoDbStore = require("connect-mongo");
+const favicon = require("serve-favicon");
 
 // import router modules
 const indexRouter = require("./routes/index");
 const joinRouter = require("./routes/join");
 const playRouter = require("./routes/play");
+const aboutRouter = require("./routes/about");
 const quitRouter = require("./routes/quit");
 
 // create express application
@@ -51,10 +53,13 @@ app.use(
         "https://code.jquery.com/jquery-3.6.1.slim.min.js",
         "https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js",
       ],
+      "connect-src": ["'self'", "https://api.github.com"],
     },
   })
 );
 app.use(compression()); // compress all routes
+
+app.use(favicon(path.join(__dirname, "public", "favicon.ico")));
 
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -81,6 +86,7 @@ app.use(expressSession(sessionOptions));
 app.use("/", indexRouter);
 app.use("/join", joinRouter);
 app.use("/play", playRouter);
+app.use("/about", aboutRouter);
 app.use("/quit", quitRouter);
 
 // catch 404 and forward to error handler
@@ -96,7 +102,7 @@ app.use(function (err, req, res, next) {
 
   // render the error page
   res.status(err.status || 500);
-  res.render("error");
+  res.render("error", { title: "Oops, something went wrong there!" });
 });
 
 module.exports = app;

@@ -18,6 +18,10 @@ const gameSchema = new mongoose.Schema({
     enum: ["collectingAnswers", "voting", "showVotingResults"],
     default: "collectingAnswers",
   },
+  currModerator: {
+    sessionPlayerId: { type: String, required: true, default: null },
+    joinTime: { type: Date, required: true, default: null },
+  },
 });
 
 // Virtual for game's URL

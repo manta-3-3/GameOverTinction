@@ -6,7 +6,7 @@ block content
       h1(class="display-1")= title
       hr
     section(class="my-3")
-      p(class="fs-6 text-white my-3") Please select one of the available games below to play!
+      p(class="text-white my-3") Please select one of the available games below to play!
       if (list_games.length === 0)
         h4(class="alert alert-warning", role="alert") Sorry, no games currently available!
       else
@@ -14,7 +14,6 @@ block content
           each game in list_games
             div(class="card border-primary border-opacity-50")
               div(class="card-body")
-                h3(class="card-title")= game.name
-                p(class="fs-6 card-subtitle mb-2") - / #{game.maxPlayers} players joined
-                //p(class="fs-6 ms-1") - / #{game.maxPlayers} players joined
+                h3(class="card-title text-decoration-underline")= game.name
+                p(class="card-subtitle mb-2") - / #{game.maxPlayers} players joined
                 a(href=game.url, class="btn btn-secondary w-50", role="button") Click to Join

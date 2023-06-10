@@ -5,9 +5,9 @@ mixin formError(type, valErrors)
       hr(class="border border-white border-1 border-opacity-50 my-2")
       ul(class="my-0")
         for error in valErrors
-          li(class="fs-6")!= error.msg
+          li!= error.msg
       hr(class="border border-white border-1 border-opacity-50 my-2")
-      p(class="fs-6 fw-semibold mb-0 mt-3") Please try again
+      p(class="fw-semibold mb-0 mt-3") Please try again
 
 doctype html
 html(lang="en")
@@ -16,6 +16,9 @@ html(lang="en")
     meta(charset="UTF-8")
     meta(http-equiv="X-UA-Compatible", content="IE=edge")
     meta(name="viewport", content="width=device-width, initial-scale=1.0")
+
+    // favicon
+    link(rel="icon", type="image/x-icon", href="/favicon.ico")
 
     //add jQuery via CDN
     script(src="https://code.jquery.com/jquery-3.6.1.slim.min.js", integrity="sha256-w8CvhFs7iHNVUtnSP0YKEg00p9Ih13rlL9zGqvLdePA", crossorigin="anonymous")
@@ -26,11 +29,13 @@ html(lang="en")
 
     // add own stylesheet
     link(rel='stylesheet', href='/stylesheets/style.css')
-  body(class="m-0 p-0")
+  body
     header(class="sticky-top")
       nav(class="navbar navbar-expand-lg navbar-dark bg-primary")
         div(class="container-fluid")
-          a(class="navbar-brand", href="/") GameOverTinction
+          a(class="navbar-brand", href="/") 
+            img(src="/favicon.ico", class="rounded-circle border border-2 border-secondary me-2", alt="Logo", loading="lazy")
+            span GameOverTinction
           button(class="navbar-toggler", type="button", data-bs-toggle="collapse", data-bs-target="#navbarColor03", aria-controls="navbarColor03", aria-expanded="false", aria-label="Toggle navigation")
             span(class="navbar-toggler-icon")
           div(id="navbarColor03", class="collapse navbar-collapse")
@@ -44,7 +49,7 @@ html(lang="en")
               li(class="nav-item")
                 a(class="nav-link", href="/play") Play
               li(class="nav-item")
-                a(class="nav-link", href="#") About
+                a(class="nav-link", href="/about") About
               li(class="nav-item")
                 a(class="nav-link", href="#") Admin
               li(class="nav-item dropdown")
@@ -61,6 +66,6 @@ html(lang="en")
     main(class="container-lg p-3 py-lg-5")
       block content
     footer(class="container-fluid text-center py-3 text-bg-primary bg-gradient rounded-bottom bg-opacity-75")
-      a(href="https://github.com/manta-3-3/GameOverTinction" class="fs-6") GameOverTinction
-      p(class="fs-6 my-0 py-2") ©Copyright 2023 by manta-3-3. All rights reserved.
-      a(href="https://github.com/manta-3-3" class="fs-6") Github manta-3-3
+      a(href="https://github.com/manta-3-3/GameOverTinction") GameOverTinction
+      p(class="my-0 py-2") ©Copyright 2023 by manta-3-3. All rights reserved.
+      a(href="https://github.com/manta-3-3") Github manta-3-3

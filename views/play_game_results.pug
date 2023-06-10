@@ -1,32 +1,57 @@
 extends layout_baseGame
 
 block game_content
-  // Your vote
-  section(class="my-3")
-    p(class="alert alert-info fs-6", role="alert") You voted for answer #[strong &#40; #{sess_user.playerVote} &#41;]
+  // Your vote, correct answer and score
+  section(class="card text-white bg-info mb-3")
+    p(class="card-header text-center p-1")
+      span The #[span(class="fw-bold") correct answer] was &#32;
+      span(class="badge rounded-pill bg-success")= (resultData.correctAnswerLetter ? resultData.correctAnswerLetter : "?")
+      if (!isMod)
+        span &#32; you voted for &#32;
+        span(class="badge rounded-pill", 
+        class=(sess_user.playerVote === resultData.correctAnswerLetter) ? "bg-success" : "bg-danger")= (sess_user.playerVote ? sess_user.playerVote : "?")
+    if(!isMod)
+      div(class="card-body p-1 d-flex flex-wrap justify-content-evenly")
+        p(class="m-1 px-2 text-bg-dark rounded-3")
+          span(class="fw-bold text-secondary me-2") + #{sess_user.roundPoints.correctAnswer}
+          span for #[span(class="fw-bold text-secondary") correct] answer!
+        p(class="m-1 px-2 text-bg-dark rounded-3")
+          span(class="fw-bold text-secondary me-2") + #{sess_user.roundPoints.othersWrongVote}
+          span for #[span(class="fw-bold text-secondary") fooling] others!
   // Results
-  p(class="fs-5 text-white my-3") You can see the results of this round below
-  section(class="accordion", id="resultAccordion")
-    each ele in resultData
+  p(class="text-white my-3") You can see the #[span(class="fw-bold") results] of this round below
+  section(class="card border-primary border-opacity-50 p-2 my-3 accordion", id="resultAccordion")
+    each ele in resultData.resArray
       div(class="accordion-item")
         h2(class="accordion-header" id="heading_"+ele.letter)
-          button(class="accordion-button collapsed", class="border border-2 border-secondary border-opacity-50", type="button", data-bs-toggle="collapse", 
+          button(class="accordion-button collapsed", type="button", data-bs-toggle="collapse", 
           data-bs-target="#collapse_"+ele.letter, aria-expanded="false", aria-controls="collapse_"+ele.letter)
-            div(class="container-fluid")
-              div(class="row")
-                div(class="col-auto")
-                  h6(class="text-break text-wrap") #[strong #{ele.letter}.] #{ele.answer}
-                div(class="col-auto")
-                  h6(class="text-break text-wrap badge text-bg-secondary bg-opacity-50") by #{ele.creator}
+            // accordion-header
+            div(class="d-flex w-100 justify-content-between align-items-center")
+              div(class="vr border border-4 opacity-100 rounded-start", 
+              class=(resultData.correctAnswerLetter === ele.letter) ? "border-success": (sess_user.playerVote === ele.letter) ? "border-danger" : "border-white")
+              div(class="container-fluid")
+                div(class="row mb-1")
+                  div(class="col-auto")
+                    p(class="m-0 text-break text-wrap")
+                      span(class="text-secondary fw-bold") #{ele.letter}.&#32;
+                      span(class="fst-italic")= ele.answer
+                div(class="row")
+                  div(class="col-auto")
+                    p(class="m-0 text-break text-wrap badge text-bg-secondary bg-opacity-50") by #{ele.creator}
+              div(class="vr border border-1 border-primary")
+              div(class="mx-2")
+                p(class="m-0 text-break text-wrap badge rounded-pill text-bg-light bg-opacity-75")= ele.voters.length
         div(id="collapse_"+ele.letter, class="accordion-collapse collapse", aria-labelledby="heading_"+ele.letter, 
         data-bs-parent="#resultAccordion")
-          div(class="accordion-body")
+          // accordion-body
+          div(class="accordion-body", class="border border-2 border-white border-opacity-50 rounded-bottom")
             div(class="container-fluid")
               div(class="row")
                 each voter in ele.voters
                   div(class="col-auto")
-                    div(class="badge text-bg-secondary bg-opacity-50 fs-7")= voter
+                    p(class="m-0 text-break text-wrap badge text-bg-secondary bg-opacity-50")= voter
   // Ready for next round form
-  form(method='POST', action='', class="my-4")
+  form(method='POST', action='', class="my-3")
     // Submit button
-    button(type="submit", class="btn btn-primary w-100") Click if your ready for the next round
+    button(type="submit", class="btn btn-secondary w-100") Click if your ready for the next round

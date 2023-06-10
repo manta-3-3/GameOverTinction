@@ -1,0 +1,22 @@
+extends layout
+
+block content
+  script(defer src="/javascripts/github_readme_fetch.js") 
+  article
+    section(class="my-3")
+      h1(class="display-1")= title
+    hr
+    section(class="my-3") 
+      span(class="text-white") See below the fetched README file from the 
+        a(href="https://github.com/manta-3-3/GameOverTinction") Github repository: GameOverTinction by manta-3-3
+    section(id="readme-area", class="card border-primary border-opacity-50 p-2 my-3 text-bg-dark")
+      // loading placeholder animation
+      p(class="m-0 placeholder-wave")
+        span(class="placeholder my-2 d-block w-25 bg-primary")
+        span(class="placeholder my-2 d-block w-50 bg-secondary")
+        span(class="placeholder my-2 d-block w-75 bg-success")
+        span(id="loding-text", class="my-2 d-block text-center text-white fst-italic") Loding Content . . .
+        span(class="placeholder my-2 d-block w-75 bg-danger")
+        span(class="placeholder my-2 d-block w-100 bg-warning")
+        span(class="placeholder my-2 d-block w-100 bg-info")
+      

@@ -7,6 +7,13 @@ mixin keyValue(key, value)
     div(class="col-auto")
       p(class="m-0 fs-6 fw-normal badge text-bg-dark text-start border border-1 border-white border-opacity-50")= value
 
+mixin un-saved(name, val)
+  div(class="d-flex justify-content-end")
+    p(class="m-0 pb-1 px-2 text-white text-opacity-50 bg-opacity-50 rounded-bottom form-text font-monospace",
+    class=val ? "bg-success" : "bg-danger")
+      span(class="fst-italic")= name+" "
+      span= (val ? "saved" : "unsaved")
+
 block content
   article(id="game")
     header(id="game_header", class="my-3 container-fluid text-bg-primary rounded-top")
@@ -17,6 +24,8 @@ block content
           +keyValue("Ingame:", sess_game.totalPlayers + "/" + db_game.maxPlayers + " Players")
         div(class="col-auto p-2")
           +keyValue("Status:", db_game.gameStatus)
+        div(class="col-auto p-2")
+          +keyValue("Moderator:", (sess_game.modName ? sess_game.modName : "No Moderator"))
       div(class="row bg-opacity-50")
         div(class="col")
           hr(class="m-0 border-secondary opacity-75")
@@ -32,6 +41,12 @@ block content
               p(class="m-0 fs-6 fw-semibold badge text-bg-secondary text-start border border-1 border-white border-opacity-50") Color:
             div(class="col-auto")
               div(class="border border-dark border-2", style=("width:2em;height:2em;border-radius:50%;background:"+sess_user.playerColor+";"))
+    section(id="game_modInfo", class="my-3")
+      if (isMod)
+        p(class="alert alert-success text-center", role="alert") 
+          span You are &#32;
+          span(class="fw-bold text-nowrap text-decoration-underline") currently Moderator
+          span &#32; in this round!
     section(id="game_title", class="my-3")
       h1(class="display-1")= title
     hr
@@ -40,7 +55,7 @@ block content
     hr
     footer(id="game_footer", class="my-3")
       div(class="container-fluid text-center p-0")
-        div(class="row")
+        div(class="row gy-2")
           div(class="col")
             a(class="btn btn-outline-primary w-100", href="/quit", role="button") Quit
           div(class="col")

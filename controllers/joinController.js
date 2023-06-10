@@ -5,6 +5,9 @@ const async = require("async");
 const Game = require("../models/game");
 const Session = require("../models/session");
 
+// require game utilities
+const gameUtil = require("../utilities/util_game");
+
 // display list of available games
 exports.join_game_list = function (req, res, next) {
   Game.find({})
@@ -112,39 +115,50 @@ exports.post_join_game = [
     next();
   },
 
-  // fetch gameStatus and assigne to locals
-  function (req, res, next) {
-    Game.findById(req.params.game_id)
-      .select("gameStatus")
-      .exec((err, data) => {
-        if (err) return next(err);
-        res.locals.gameStatus = data.gameStatus;
-        next();
-      });
-  },
-
   // create new session and assigne data to it
   function (req, res, next) {
     // reset session all session data is lost -> logged out from all games
-    req.session.regenerate(function (err) {
+    req.session.regenerate(async function (err) {
       if (err) return next(err);
+
       // assigne data to session
       req.session.game_id = req.params.game_id;
       req.session.playerName = req.body.playerName;
       req.session.playerColor = req.body.playerColor;
+      req.session.joinTime = new Date();
       req.session.playerPoints = 0;
+      req.session.roundPoints = {
+        correctAnswer: 0,
+        othersWrongVote: 0,
+      };
       req.session.playerAnswer = null;
       req.session.answerLetter = null;
       req.session.playerVote = null;
-      // only place player in round if game is at collectingAnswers phase
-      if (res.locals.gameStatus === "collectingAnswers") {
-        req.session.isInRound = true;
-      } else {
-        req.session.isInRound = false;
+
+      try {
+        // fetch game and assign to locals
+        res.locals.db_game = await Game.findById(req.params.game_id)
+          .select("-password")
+          .exec();
+      } catch (err) {
+        return next(err);
       }
+
+      // only place player in round if game is at collectingAnswers phase
+      req.session.isInRound =
+        res.locals.db_game.gameStatus === "collectingAnswers";
+
       // save data immediately back to db
-      req.session.save(function (err) {
+      req.session.save(async function (err) {
         if (err) return next(err);
+
+        try {
+          // update game
+          await gameUtil.updateGame(res.locals.db_game, false);
+        } catch (err) {
+          return next(err);
+        }
+
         // redirect to the play route of this game
         res.redirect(`/play/${req.params.game_id}`);
       });

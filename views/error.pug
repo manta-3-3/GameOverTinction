@@ -1,6 +1,10 @@
 extends layout
 
 block content
-  h1= message
-  h2= error.status
-  pre #{error.stack}
+  article
+    section(class="my-3")
+      h1(class="display-1")= title
+    hr
+    h1= message
+    h2= error.status
+    pre #{error.stack}
