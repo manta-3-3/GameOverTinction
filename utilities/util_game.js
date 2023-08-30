@@ -4,6 +4,9 @@ const async = require("async");
 const Game = require("../models/game");
 const Session = require("../models/session");
 
+// require game state mappings
+const gameStates = require("./gameStates");
+
 /**
  * updates a specific game
  * @param {string | ObjectId | object} game
@@ -27,27 +30,27 @@ exports.updateGame = async function (game, needRefetch) {
     }
   }
 
-  // do different actions based on current gameStatus
-  switch (game.gameStatus) {
-    case "collectingAnswers":
-      return updateGame_collectingAnswers(game);
-    case "voting":
-      return updateGame_voting(game);
-    case "showVotingResults":
-      return updateGame_showVotingResults(game);
+  // do different actions based on current gameState
+  switch (game.gameState) {
+    case gameStates.COLLECT_ANSWERS:
+      return updateGame_answer(game);
+    case gameStates.COLLECT_VOTES:
+      return updateGame_vote(game);
+    case gameStates.SHOW_RESULTS:
+      return updateGame_results(game);
     default:
       throw new Error(
-        `update game ${game._id} failed: no valid gameStatus found!`
+        `update game ${game._id} failed: no valid gameState found!`
       );
   }
 };
 
 /**
- * updateGame handler at collectingAnswers phase
+ * updateGame handler at COLLECT_ANSWERS phase
  * @param {object} game game document fetched from database
  * @return {Promise<void | string>} continueURL for later redirection (optional)
  */
-async function updateGame_collectingAnswers(game) {
+async function updateGame_answer(game) {
   // check if current mod still present, if not (-> mod lost), reset game to restart a new round
   const modFound = await Session.findValidModInfo(
     game.currModerator.sessionPlayerId,
@@ -74,8 +77,13 @@ async function updateGame_collectingAnswers(game) {
   // do update
   await async.parallel([
     (cb) => {
-      // update gameStatus
-      Game.findByIdAndUpdate(game._id, { gameStatus: "voting" }, {}, cb);
+      // update gameState
+      Game.findByIdAndUpdate(
+        game._id,
+        { gameState: gameStates.COLLECT_VOTES },
+        {},
+        cb
+      );
     },
     async (cb) => {
       // generate random ordered alphabet array, max 26 letters, so max 26 Players per game
@@ -103,15 +111,15 @@ async function updateGame_collectingAnswers(game) {
   ]);
 
   // return continueURL
-  return `/play/${game._id}/vote`;
+  return `/play/${game._id}/${gameStates.COLLECT_VOTES}`;
 }
 
 /**
- * updateGame handler at voting phase
+ * updateGame handler at COLLECT_VOTES phase
  * @param {object} game game document fetched from database
  * @return {Promise<void | string>} continueURL for later redirection (optional)
  */
-async function updateGame_voting(game) {
+async function updateGame_vote(game) {
   // check if update needed
   const sess = await async.parallel({
     inRound: (cb) => {
@@ -128,10 +136,10 @@ async function updateGame_voting(game) {
 
   // do update
   await Promise.all([
-    // update gameStatus
+    // update gameState
     Game.findByIdAndUpdate(
       game._id,
-      { gameStatus: "showVotingResults" },
+      { gameState: gameStates.SHOW_RESULTS },
       {}
     ).exec(),
     // do score evaluation
@@ -139,15 +147,15 @@ async function updateGame_voting(game) {
   ]);
 
   // return continueURL
-  return `/play/${game._id}/results`;
+  return `/play/${game._id}/${gameStates.SHOW_RESULTS}`;
 }
 
 /**
- * updateGame handler at showVotingResults phase
+ * updateGame handler at SHOW_RESULTS phase
  * @param {object} game game document fetched from database
  * @return {Promise<void | string>} continueURL for later redirection (optional)
  */
-async function updateGame_showVotingResults(game) {
+async function updateGame_results(game) {
   // check if update needed
   const sess = await async.parallel({
     total: (cb) => {
@@ -166,7 +174,7 @@ async function updateGame_showVotingResults(game) {
   await initNewRound(game, true);
 
   // return continueURL
-  return `/play/${game._id}/answer`;
+  return `/play/${game._id}/${gameStates.COLLECT_ANSWERS}`;
 }
 
 /**
@@ -220,10 +228,10 @@ function updateModerator(gameId, currModerator, selNext) {
  */
 function initNewRound(game, selNextMod) {
   return Promise.all([
-    // update gameStatus
+    // update gameState
     Game.findByIdAndUpdate(
       game._id,
-      { gameStatus: "collectingAnswers" },
+      { gameState: gameStates.COLLECT_ANSWERS },
       {}
     ).exec(),
     // reset all sessions for this game for a new round
@@ -235,7 +243,7 @@ function initNewRound(game, selNextMod) {
 }
 
 /**
- * fetch and process game results used in showVotingResults phase
+ * fetch and process game results used in SHOW_RESULTS phase
  * @param {object} game game document fetched from database
  * @return {Promise<object>} containing resArray and correctAnswerLetter
  */

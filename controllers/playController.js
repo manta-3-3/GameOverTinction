@@ -74,9 +74,9 @@ exports.controlGameRound = function (req, res, next) {
   return res.redirect(`/play/${res.locals.db_game._id}`);
 };
 
-// middleware to controle the current gameStatus route flow
-exports.controlGameStatus = function (req, res, next) {
-  // controle gameStatus route
+// middleware to controle the current gameState route flow
+exports.controlGameState = function (req, res, next) {
+  // controle gameState route
   if (res.locals.db_game.continueURL === req.originalUrl) {
     next();
   } else {

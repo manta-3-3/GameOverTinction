@@ -9,6 +9,8 @@ const Session = require("../models/session");
 const gameUtil = require("../utilities/util_game");
 // require promisify session functions
 const sessionFuncts = require("../utilities/promisifySessionFuncts");
+// require game state mappings
+const gameStates = require("../utilities/gameStates");
 
 // display list of available games
 exports.join_game_list = function (req, res, next) {
@@ -150,9 +152,9 @@ exports.post_join_game = [
       req.session.playerAnswer = null;
       req.session.answerLetter = null;
       req.session.playerVote = null;
-      // only place player in round if game is at collectingAnswers phase
+      // only place player in round if game is at COLLECT_ANSWERS state
       req.session.isInRound =
-        res.locals.db_game.gameStatus === "collectingAnswers";
+        res.locals.db_game.gameState === gameStates.COLLECT_ANSWERS;
 
       // save session data immediately back to db
       await sessionFuncts.save(req);

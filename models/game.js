@@ -1,22 +1,17 @@
 const mongoose = require("mongoose");
 
-// mapping gameStatus from database to corresponding route
-const dbToRoute = {
-  collectingAnswers: "answer",
-  voting: "vote",
-  showVotingResults: "results",
-};
+// require game state mappings
+const gameStates = require("../utilities/gameStates");
 
 const gameSchema = new mongoose.Schema({
   name: { type: String, require: true },
   password: { type: String, require: true },
-  //sessionIdPlayers: [{ type: String }], // save gameID insted in session
   maxPlayers: { type: Number, default: 10, require: true },
-  gameStatus: {
+  gameState: {
     type: String,
     required: true,
-    enum: ["collectingAnswers", "voting", "showVotingResults"],
-    default: "collectingAnswers",
+    enum: Object.values(gameStates),
+    default: gameStates.COLLECT_ANSWERS,
   },
   currModerator: {
     sessionPlayerId: { type: String, required: true, default: null },
@@ -31,7 +26,7 @@ gameSchema.virtual("url").get(function () {
 
 // Virtual for game's continue URL
 gameSchema.virtual("continueURL").get(function () {
-  return `/play/${this._id}/${dbToRoute[this.gameStatus]}`;
+  return `/play/${this._id}/${this.gameState}`;
 });
 
 //Export model

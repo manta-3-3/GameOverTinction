@@ -4,7 +4,7 @@ block game_content
   section(class="my-3")
     p(class="alert alert-info text-center", role="alert") 
       span The game is currently at the &#32;
-      span(class="fw-bold text-nowrap text-decoration-underline") "#{db_game.gameStatus}"
+      span(class="fw-bold text-nowrap text-decoration-underline") "#{db_game.gameState}"
       span &#32; phase!
   section(class="my-3")
     if (!sess_user.isInRound)
