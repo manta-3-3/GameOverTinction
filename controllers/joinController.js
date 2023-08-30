@@ -29,7 +29,7 @@ exports.join_game_list = function (req, res, next) {
 
 // display login for specified game
 exports.get_join_game = function (req, res) {
-  res.render("join_game", {
+  return res.render("join_game", {
     title: "Login Game",
     game_id: req.params.game_id,
   });
@@ -79,7 +79,7 @@ exports.post_join_game = [
 
   // check game password
   async function (req, res, next) {
-    if (!validationResult(req).isEmpty()) next();
+    if (!validationResult(req).isEmpty()) return next();
     try {
       const data = await async.parallel({
         //fetch game for this game_id from database
@@ -115,7 +115,7 @@ exports.post_join_game = [
     } catch (err) {
       return next(err);
     }
-    next();
+    return next();
   },
 
   // extract the validation errors from a request
@@ -130,7 +130,7 @@ exports.post_join_game = [
       });
     }
     // data from form is valid -> continue
-    next();
+    return next();
   },
 
   // create new session and assigne data to it
