@@ -7,6 +7,8 @@ const Session = require("../models/session");
 
 // require game utilities
 const gameUtil = require("../utilities/util_game");
+// require promisify session functions
+const sessionFuncts = require("../utilities/promisifySessionFuncts");
 
 // middleware to check if this user got access to this game via session-cookie
 exports.authForGame_id = function (req, res, next) {
@@ -162,10 +164,10 @@ exports.post_play_game_answer = [
 
     // save the playerAnswer in the session
     req.session.playerAnswer = req.body.playerAnswer;
-    req.session.save((err) => {
-      if (err) next(err);
-      return next();
-    });
+    sessionFuncts
+      .save(req)
+      .then(() => next())
+      .catch((err) => next(err));
   },
 
   // update game
@@ -242,10 +244,10 @@ exports.post_play_game_vote = [
 
     // save the playerVote in the session
     req.session.playerVote = req.body.playerVote;
-    req.session.save((err) => {
-      if (err) return next(err);
-      return next();
-    });
+    sessionFuncts
+      .save(req)
+      .then(() => next())
+      .catch((err) => next(err));
   },
 
   // update game
@@ -277,10 +279,10 @@ exports.post_play_game_results = [
   // set isInRound to false
   function (req, res, next) {
     req.session.isInRound = false;
-    req.session.save((err) => {
-      if (err) return next(err);
-      return next();
-    });
+    sessionFuncts
+      .save(req)
+      .then(() => next())
+      .catch((err) => next(err));
   },
 
   // update game

@@ -7,16 +7,22 @@ const Session = require("../models/session");
 
 // require game utilities
 const gameUtil = require("../utilities/util_game");
+// require promisify session functions
+const sessionFuncts = require("../utilities/promisifySessionFuncts");
 
 // display list of available games
 exports.join_game_list = function (req, res, next) {
   Game.find({})
     .select("-password")
-    .exec(function (err, data) {
-      if (err) return next(err);
+    .exec()
+    .then((data) => {
       // TODO: display current player count at each game
-      res.render("join_game_list", { title: "Select Game", list_games: data });
-    });
+      return res.render("join_game_list", {
+        title: "Select Game",
+        list_games: data,
+      });
+    })
+    .catch((err) => next(err));
 };
 
 // display login for specified game
@@ -41,6 +47,7 @@ exports.post_join_game = [
     .escape()
     .notEmpty()
     .withMessage("playerName is empty!")
+    .bail()
     .isLength({ max: 40 })
     .withMessage("playerName cannot be longer than 40 characters!")
     .isAlphanumeric()
@@ -66,39 +73,48 @@ exports.post_join_game = [
     .trim()
     .escape()
     .notEmpty()
-    .withMessage("gamePassword is empty!")
-    .bail()
-    .custom(function (value, { req }) {
-      return new Promise((resolve, reject) => {
-        async.parallel(
-          {
-            //fetch game for this game_id from database
-            db_game(callback) {
-              Game.findById(req.params.game_id).exec(callback);
-            },
-            //fetch current player count at game_id from session
-            sess_countCurrentPlayers(callback) {
-              Session.countTotalPlayersByGame_id(req.params.game_id).exec(
-                callback
-              );
-            },
-          },
-          (err, data) => {
-            if (err) return reject(err);
-            if (data.db_game == null) {
-              return reject("Sorry, No such game exists at the moment!");
-            }
-            if (data.sess_countCurrentPlayers >= data.db_game.maxPlayers) {
-              return reject("Sorry, maximum number of players reached!");
-            }
-            if (data.db_game.password !== value) {
-              return reject("Sorry, Wrong password for this game!");
-            }
-            return resolve();
-          }
-        );
+    .withMessage("gamePassword is empty!"),
+
+  // check game password
+  async function (req, res, next) {
+    if (!validationResult(req).isEmpty()) next();
+    try {
+      const data = await async.parallel({
+        //fetch game for this game_id from database
+        db_game: function (callback) {
+          Game.findById(req.params.game_id).exec(callback);
+        },
+        //fetch current player count at game_id from session
+        sess_countCurrPlayers: function (callback) {
+          Session.countTotalPlayersByGame_id(req.params.game_id).exec(callback);
+        },
       });
-    }),
+      await body("gamePassword")
+        .custom((value) => {
+          if (!data.db_game)
+            throw new Error("Sorry, No such game exists at the moment!");
+          // add db_game to locals for later use
+          res.locals.db_game = data.db_game;
+          return true;
+        })
+        .bail()
+        .custom((value) => {
+          if (data.sess_countCurrPlayers >= data.db_game.maxPlayers)
+            throw new Error("Sorry, maximum number of players reached!");
+          return true;
+        })
+        .bail()
+        .custom((value) => {
+          if (data.db_game.password !== value)
+            throw new Error("Sorry, Wrong password for this game!");
+          return true;
+        })
+        .run(req, { dryRun: false });
+    } catch (err) {
+      return next(err);
+    }
+    next();
+  },
 
   // extract the validation errors from a request
   function (req, res, next) {
@@ -116,10 +132,10 @@ exports.post_join_game = [
   },
 
   // create new session and assigne data to it
-  function (req, res, next) {
-    // reset session all session data is lost -> logged out from all games
-    req.session.regenerate(async function (err) {
-      if (err) return next(err);
+  async function (req, res, next) {
+    try {
+      // reset session all session data is lost -> logged out from all games
+      await sessionFuncts.regenerate(req);
 
       // assigne data to session
       req.session.game_id = req.params.game_id;
@@ -134,34 +150,20 @@ exports.post_join_game = [
       req.session.playerAnswer = null;
       req.session.answerLetter = null;
       req.session.playerVote = null;
-
-      try {
-        // fetch game and assign to locals
-        res.locals.db_game = await Game.findById(req.params.game_id)
-          .select("-password")
-          .exec();
-      } catch (err) {
-        return next(err);
-      }
-
       // only place player in round if game is at collectingAnswers phase
       req.session.isInRound =
         res.locals.db_game.gameStatus === "collectingAnswers";
 
-      // save data immediately back to db
-      req.session.save(async function (err) {
-        if (err) return next(err);
+      // save session data immediately back to db
+      await sessionFuncts.save(req);
 
-        try {
-          // update game
-          await gameUtil.updateGame(res.locals.db_game, false);
-        } catch (err) {
-          return next(err);
-        }
+      // update game
+      await gameUtil.updateGame(res.locals.db_game, false);
+    } catch (err) {
+      return next(err);
+    }
 
-        // redirect to the play route of this game
-        res.redirect(`/play/${req.params.game_id}`);
-      });
-    });
+    // redirect to the play route of this game
+    return res.redirect(`/play/${req.params.game_id}`);
   },
 ];
