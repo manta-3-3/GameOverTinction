@@ -10,7 +10,16 @@ const gameUtil = require("../utilities/util_game");
 // require promisify session functions
 const sessionFuncts = require("../utilities/promisifySessionFuncts");
 
+// TODO:
+// GET /
+exports.get_play_index = function (req, res) {
+  return res.render("play_index", {
+    title: "Happy Playing",
+  });
+};
+
 // middleware to check if this user got access to this game via session-cookie
+// USE /:game_id
 exports.authForGame_id = function (req, res, next) {
   if (req.session.game_id === req.params.game_id) return next();
   // else access denied redirect to join page
@@ -18,13 +27,14 @@ exports.authForGame_id = function (req, res, next) {
 };
 
 // midleware fetch game-info form database for GameInfoHeader
+// USE /:game_id
 exports.fetchForGameInfoHeader = function (req, res, next) {
   // fetch game for this game_id from database
   Game.findById(req.params.game_id)
     .select("-password")
     .exec()
     .then((db_game) => {
-      if (db_game === null) {
+      if (!db_game) {
         // No such game found
         const err = new Error("Game not found");
         err.status = 404;
@@ -61,12 +71,20 @@ exports.fetchForGameInfoHeader = function (req, res, next) {
         req.sessionID === res.locals.db_game.currModerator.sessionPlayerId &&
         req.session.isInRound;
       // go on
-      next();
+      return next();
     })
     .catch((err) => next(err));
 };
 
+// GET /:game_id
+exports.get_play_game_info = function (req, res) {
+  return res.render("play_game_info", {
+    title: "Welcome to the game!",
+  });
+};
+
 // middleware to check if player is in current round
+// USE /:game_id/:gameState
 exports.controlGameRound = function (req, res, next) {
   // player can pass if he is in current round
   if (res.locals.sess_user.isInRound) return next();
@@ -75,34 +93,24 @@ exports.controlGameRound = function (req, res, next) {
 };
 
 // middleware to controle the current gameState route flow
+// USE /:game_id/:gameState
 exports.controlGameState = function (req, res, next) {
   // controle gameState route
   if (res.locals.db_game.continueURL === req.originalUrl) {
-    next();
+    return next();
   } else {
-    res.redirect(res.locals.db_game.continueURL);
+    return res.redirect(res.locals.db_game.continueURL);
   }
 };
 
-// TODO:
-exports.get_play_index = function (req, res) {
-  res.render("play_index", {
-    title: "Happy Playing",
-  });
-};
-
-exports.get_play_game_info = function (req, res) {
-  res.render("play_game_info", {
-    title: "Welcome to the game!",
-  });
-};
-
+// GET /:game_id/${gameStates.COLLECT_ANSWERS}
 exports.get_play_game_answer = function (req, res) {
-  res.render("play_game_answer", {
+  return res.render("play_game_answer", {
     title: "Submit your answer",
   });
 };
 
+// POST /:game_id/${gameStates.COLLECT_ANSWERS}
 exports.post_play_game_answer = [
   // validate and sanitize fields
   body("playerAnswer")
@@ -116,6 +124,7 @@ exports.post_play_game_answer = [
     .escape()
     .notEmpty()
     .withMessage("playerAnswer is empty!")
+    .bail()
     .isLength({ max: 250 })
     .withMessage("playerAnswer cannot be longer than 250 characters!"),
   async function (req, res, next) {
@@ -166,44 +175,30 @@ exports.post_play_game_answer = [
     req.session.playerAnswer = req.body.playerAnswer;
     sessionFuncts
       .save(req)
-      .then(() => next())
-      .catch((err) => next(err));
-  },
-
-  // update game
-  function (req, res, next) {
-    gameUtil
-      .updateGame(res.locals.db_game, false)
-      .then((continueURL) =>
-        res.redirect(continueURL ? continueURL : req.originalUrl)
-      )
+      .then(() => next("route"))
       .catch((err) => next(err));
   },
 ];
 
+// GET /:game_id/${gameStates.COLLECT_VOTES}
 exports.get_play_game_vote = function (req, res, next) {
-  Session.findAnswersAndLettersByGame_id(res.locals.db_game.id).exec(
-    (err, data) => {
-      if (err) next(err);
+  Session.findAnswersAndLettersByGame_id(res.locals.db_game.id)
+    .exec()
+    .then((data) =>
       res.render("play_game_vote", {
         title: "Vote for an answer",
         answersAndLetters: data,
-      });
-    }
-  );
+      })
+    )
+    .catch((err) => next(err));
 };
 
+// POST /:game_id/${gameStates.COLLECT_VOTES}
 exports.post_play_game_vote = [
-  // check if player is mod, if so take other actions
+  // check if player is mod, if so skip other actions
   function (req, res, next) {
-    if (!res.locals.isMod) return next();
-    // only update game
-    gameUtil
-      .updateGame(res.locals.db_game, false)
-      .then((continueURL) =>
-        res.redirect(continueURL ? continueURL : req.originalUrl)
-      )
-      .catch((err) => next(err));
+    if (res.locals.isMod) return next("route");
+    return next();
   },
 
   // validate and sanitize fields
@@ -218,6 +213,7 @@ exports.post_play_game_vote = [
     .escape()
     .notEmpty()
     .withMessage("playerVote is empty!")
+    .bail()
     .isLength({ max: 1 })
     .withMessage("playerVote can only be one letter!")
     .bail()
@@ -229,16 +225,16 @@ exports.post_play_game_vote = [
     const valErrors = validationResult(req);
     if (!valErrors.isEmpty()) {
       // there are errors. Render form again with sanitized values/errors messages
-      return Session.findAnswersAndLettersByGame_id(res.locals.db_game.id).exec(
-        (err, data) => {
-          if (err) return next(err);
-          return res.render("play_game_vote", {
+      return Session.findAnswersAndLettersByGame_id(res.locals.db_game.id)
+        .exec()
+        .then((data) =>
+          res.render("play_game_vote", {
             title: "Vote for an answer",
             answersAndLetters: data,
             valErrors: valErrors.array(),
-          });
-        }
-      );
+          })
+        )
+        .catch((err) => next(err));
     }
     // data from form is valid -> continue
 
@@ -246,52 +242,43 @@ exports.post_play_game_vote = [
     req.session.playerVote = req.body.playerVote;
     sessionFuncts
       .save(req)
-      .then(() => next())
-      .catch((err) => next(err));
-  },
-
-  // update game
-  function (req, res, next) {
-    gameUtil
-      .updateGame(res.locals.db_game, false)
-      .then((continueURL) =>
-        res.redirect(continueURL ? continueURL : req.originalUrl)
-      )
+      .then(() => next("route"))
       .catch((err) => next(err));
   },
 ];
 
+// GET /:game_id/${gameStates.SHOW_RESULTS}
 exports.get_play_game_results = function (req, res, next) {
   gameUtil
     .fetchAndProcessGameResults(res.locals.db_game)
-    .then((data) => {
-      return res.render("play_game_results", {
+    .then((data) =>
+      res.render("play_game_results", {
         title: "Show Results",
         resultData: data,
-      });
-    })
-    .catch((err) => {
-      next(err);
-    });
+      })
+    )
+    .catch((err) => next(err));
 };
 
+// POST /:game_id/${gameStates.SHOW_RESULTS}
 exports.post_play_game_results = [
   // set isInRound to false
   function (req, res, next) {
     req.session.isInRound = false;
     sessionFuncts
       .save(req)
-      .then(() => next())
-      .catch((err) => next(err));
-  },
-
-  // update game
-  function (req, res, next) {
-    gameUtil
-      .updateGame(res.locals.db_game, false)
-      .then((continueURL) =>
-        res.redirect(continueURL ? continueURL : req.originalUrl)
-      )
+      .then(() => next("route"))
       .catch((err) => next(err));
   },
 ];
+
+// update game at end of each request to
+// POST /:game_id/:gameState
+exports.post_play_updateGame = function (req, res, next) {
+  gameUtil
+    .updateGame(res.locals.db_game, false)
+    .then((continueURL) =>
+      res.redirect(continueURL ? continueURL : req.originalUrl)
+    )
+    .catch((err) => next(err));
+};
